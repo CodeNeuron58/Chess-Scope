@@ -1,0 +1,19 @@
+.eval-graph {
+  border-radius: 8px;
+  overflow: hidden;
+}
+.eval-graph svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.eval-graph__dot {
+  cursor: pointer;
+}
+.eval-graph--empty {
+  background: #302e2b;
+  color: #8f8b84;
+  border-radius: 8px;
+  padding: 18px 14px;
+  font-size: 12px;
+}

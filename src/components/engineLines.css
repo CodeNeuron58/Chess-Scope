@@ -1,0 +1,45 @@
+.engine-lines {
+  background: #302e2b;
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.engine-lines--empty {
+  color: #8f8b84;
+  font-size: 12px;
+}
+.engine-lines__head {
+  font-size: 11px;
+  font-weight: 700;
+  color: #8f8b84;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.engine-line {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  font-size: 12.5px;
+}
+.engine-line--best .engine-line__pv {
+  color: #ffffff;
+}
+.engine-line__eval {
+  font-weight: 800;
+  color: #e8e6e3;
+  background: #3b3936;
+  border-radius: 4px;
+  padding: 1px 6px;
+  min-width: 40px;
+  text-align: center;
+  flex: none;
+}
+.engine-line__eval--neg {
+  color: #b9b5ae;
+}
+.engine-line__pv {
+  color: #cfccc6;
+  line-height: 1.45;
+}

@@ -1,0 +1,236 @@
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ---------- top bar ---------- */
+.topbar {
+  height: 56px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px;
+  background: #21201d;
+  border-bottom: 1px solid var(--border);
+}
+.topbar__brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-right: 8px;
+}
+.topbar__logo {
+  font-size: 26px;
+  color: var(--accent);
+}
+.topbar__brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+.topbar__brand-text strong {
+  font-size: 15px;
+  letter-spacing: 0.01em;
+}
+.topbar__brand-text span {
+  font-size: 10.5px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+.topbar__spacer {
+  flex: 1;
+}
+
+.btn {
+  border: none;
+  border-radius: 7px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  color: var(--text);
+  transition: filter 0.15s ease, background 0.15s ease;
+  white-space: nowrap;
+}
+.btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.btn--ghost {
+  background: var(--panel-2);
+}
+.btn--ghost:hover:not(:disabled) {
+  background: #46443f;
+}
+.btn--accent {
+  background: var(--accent);
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+.btn--accent:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+.btn--danger {
+  background: var(--danger);
+  color: #fff;
+}
+.select {
+  background: var(--panel-2);
+  color: var(--text);
+  border: none;
+  border-radius: 7px;
+  padding: 8px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+}
+
+/* ---------- layout ---------- */
+.main {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 18px;
+  padding: 16px;
+  overflow: hidden;
+}
+.board-col {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: none;
+}
+.board-row {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+}
+.board-wrap {
+  position: relative;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+}
+.side {
+  width: 400px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: calc(100vh - 88px);
+  overflow-y: auto;
+  padding-bottom: 8px;
+}
+
+/* ---------- player rows ---------- */
+.player-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 2px;
+}
+.player-row__dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  background: linear-gradient(135deg, #f5f3ef 55%, #403d39 55%);
+  border: 1px solid var(--border);
+  flex: none;
+}
+.player-row__name {
+  font-weight: 800;
+  font-size: 13.5px;
+}
+.player-row__acc {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--accent);
+  background: rgba(129, 182, 76, 0.14);
+  border-radius: 10px;
+  padding: 2px 9px;
+}
+
+/* ---------- review overlay ---------- */
+.review-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(20, 19, 17, 0.78);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  backdrop-filter: blur(2px);
+}
+.review-overlay__card {
+  width: min(320px, 80%);
+  background: var(--panel);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+}
+.review-overlay__title {
+  font-weight: 800;
+  font-size: 15px;
+}
+.review-overlay__bar {
+  width: 100%;
+  height: 8px;
+  background: var(--panel-2);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.review-overlay__fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 6px;
+  transition: width 0.25s ease;
+}
+.review-overlay__count {
+  font-size: 11.5px;
+  color: var(--text-dim);
+}
+.review-overlay__fact {
+  font-size: 11px;
+  color: #a8a49c;
+  font-style: italic;
+  text-align: center;
+  max-width: 240px;
+  line-height: 1.4;
+}
+.review-overlay__spinner {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 3px solid var(--panel-2);
+  border-top-color: var(--accent);
+  animation: spin 0.9s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.side__start-review {
+  width: 100%;
+}
+
+/* ---------- status ---------- */
+.status-line {
+  min-height: 16px;
+  font-size: 11.5px;
+  color: var(--text-dim);
+}
+.status-line__hint {
+  opacity: 0.8;
+}

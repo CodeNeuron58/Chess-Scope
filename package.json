@@ -1,0 +1,35 @@
+{
+  "name": "chessscope",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "oxlint src",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "postinstall": "node scripts/copy-engines.mjs"
+  },
+  "dependencies": {
+    "chess.js": "^1.0.0",
+    "react": "^19.3.1",
+    "react-chessboard": "^4.7.3",
+    "react-dom": "^19.3.1",
+    "stockfish16": "npm:stockfish@16.0.0",
+    "stockfish19": "npm:stockfish@19.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "oxlint": "^1.88.0",
+    "stockfish": "^19.0.1",
+    "typescript": "~6.0.3",
+    "vite": "^8.3.4",
+    "vitest": "^5.0.5"
+  },
+  "description": "Local, private chess game review — Stockfish NNUE analysis, move classifications, accuracy scores, and an interactive coach. Runs entirely in your browser.",
+  "license": "MIT"
+}

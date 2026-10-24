@@ -1,0 +1,10 @@
+.class-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  line-height: 1;
+  flex: none;
+  user-select: none;
+}

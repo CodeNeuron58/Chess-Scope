@@ -1,0 +1,64 @@
+.move-list {
+  flex: 1;
+  min-height: 120px;
+  overflow-y: auto;
+  background: #302e2b;
+  border-radius: 8px;
+  padding: 6px;
+}
+.move-list__empty {
+  color: #8f8b84;
+  font-size: 12px;
+  padding: 12px 8px;
+}
+.move-row {
+  display: grid;
+  grid-template-columns: 34px 1fr 1fr;
+  gap: 3px;
+  margin-bottom: 3px;
+  align-items: stretch;
+}
+.move-num {
+  display: flex;
+  align-items: center;
+  color: #8f8b84;
+  font-size: 12px;
+  padding-left: 4px;
+}
+.move-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 7px;
+  border-radius: 4px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #e8e6e3;
+  cursor: pointer;
+  background: #3b3936;
+  min-height: 15px;
+}
+.move-cell:hover {
+  background: #45433f;
+}
+.move-cell--active {
+  background: #56534d;
+  color: #ffffff;
+}
+.move-cell--empty {
+  background: transparent;
+  cursor: default;
+}
+.move-cell--empty:hover {
+  background: transparent;
+}
+.move-cell__san {
+  pointer-events: none;
+}
+.move-divider {
+  text-align: center;
+  font-size: 10.5px;
+  color: #a88865;
+  padding: 4px 0 6px;
+  font-style: italic;
+}

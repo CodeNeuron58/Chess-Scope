@@ -1,0 +1,258 @@
+/* Layout shared by the board pages (Review, Analysis, Drills). */
+.board-page {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  justify-content: safe center;
+  align-items: stretch;
+  gap: 24px;
+  padding: 18px 24px 20px;
+}
+.board-col {
+  display: flex;
+  flex-direction: column;
+  justify-content: safe center;
+  gap: 8px;
+  min-width: 0;
+}
+.board-row {
+  display: flex;
+  gap: 10px;
+}
+
+.player-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 34px;
+  padding-left: 30px;
+  white-space: nowrap;
+  min-width: 0;
+}
+.player-bar__icon {
+  width: 28px;
+  height: 28px;
+  flex: none;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.player-bar__icon--w {
+  background: var(--text);
+}
+.player-bar__icon--b {
+  background: var(--track-off);
+}
+.player-bar__icon img {
+  width: 22px;
+  height: 22px;
+}
+.player-bar__name {
+  font-size: 14.5px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.player-bar__elo {
+  font-size: 13px;
+  color: var(--text-3);
+}
+.player-bar__chip {
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: var(--row);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--accent);
+}
+.player-bar__turn {
+  width: 7px;
+  height: 7px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.player-bar__caps {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  padding-left: 8px;
+}
+.player-bar__caps img {
+  width: 19px;
+  height: 19px;
+  margin-left: -5px;
+  opacity: 0.9;
+}
+.player-bar__lead {
+  margin-left: 6px;
+  font-size: 12.5px;
+  color: var(--text-3);
+}
+
+.board-status {
+  padding-left: 30px;
+  font-size: 12.5px;
+  color: var(--loss);
+}
+
+/* side panel */
+.panel {
+  width: 400px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  overflow: hidden;
+  min-height: 0;
+}
+.panel__tabs {
+  height: 56px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px 0 14px;
+  border-bottom: 1px solid var(--line-soft);
+}
+.panel__meta {
+  margin-left: auto;
+  font-size: 12.5px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.panel__scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+.panel__section {
+  flex: none;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--line-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.panel__nav {
+  flex: none;
+  display: flex;
+  gap: 6px;
+  padding: 12px;
+  border-top: 1px solid var(--line-soft);
+}
+.nav-btn {
+  width: 46px;
+  height: 44px;
+  flex: none;
+  border: 0;
+  border-radius: 12px;
+  background: var(--row);
+  color: var(--text-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.nav-btn:hover:not(:disabled) {
+  background: var(--line);
+  color: var(--text);
+}
+.nav-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.nav-btn--grow {
+  flex: 1;
+  width: auto;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+.nav-btn--accent {
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 700;
+}
+.nav-btn--accent:hover:not(:disabled) {
+  background: var(--accent-hover);
+  color: var(--accent-ink);
+}
+
+/* engine line row */
+.pv-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--bg);
+  color: inherit;
+  text-align: left;
+  width: 100%;
+}
+button.pv-line:hover {
+  background: var(--bg-deep);
+}
+.pv-line--flat {
+  background: transparent;
+  padding: 0 10px;
+}
+.pv-eval {
+  min-width: 42px;
+  padding: 2px 4px;
+  border-radius: 5px;
+  font-size: 11.5px;
+  font-weight: 700;
+  text-align: center;
+  background: var(--line);
+  color: var(--text);
+  flex: none;
+}
+.pv-eval--best {
+  background: var(--text);
+  color: var(--bg);
+}
+.pv-eval--black {
+  background: var(--bg-deep);
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.pv-text {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pv-line--flat .pv-text {
+  color: var(--text-3);
+}
+.pv-toggle {
+  font-size: 12px;
+  color: var(--text-3);
+  white-space: nowrap;
+}
+
+@media (max-width: 1099px) {
+  /* stacked: the page scrolls, so the column grows instead of centring (which would clip its top) */
+  .board-page {
+    flex: none;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    padding: 16px;
+  }
+  .panel {
+    width: 100%;
+    max-width: 720px;
+    min-height: 520px;
+  }
+}

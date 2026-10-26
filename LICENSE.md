@@ -2,7 +2,7 @@
 
 ## Application code
 
-The ChessScope source code in `src/` (and this repository generally, excluding the engine
+The Owlchess source code in `src/` (and this repository generally, excluding the engine
 binaries described below) is released under the **MIT License**:
 
 > Permission is hereby granted, free of charge, to any person obtaining a copy of this
@@ -34,14 +34,30 @@ them (with this app or otherwise), the GPLv3 terms apply to those files: keep th
 notices and make the corresponding source available. See `Copying.txt` inside the engine
 packages for the full text.
 
+## Piece sets
+
+The piece images in `public/pieces/` come from the lichess-org/lila repository. Each set
+keeps its own licence (see `public/pieces/LICENSES.md`, which must ship with the assets):
+
+| Set | Author | Licence |
+|---|---|---|
+| cburnett (Classic) | Colin M.L. Burnett | GPLv2+ |
+| merida | Armando Hernandez Marroquin | GPLv2+ |
+| chessnut | Alexis Luengas | Apache 2.0 |
+| fantasy, celtic | Maurizio Monge | MIT |
+
+The GPL-licensed sets carry copyleft terms when distributed; the Apache 2.0 and MIT sets are
+the simplest for commercial use.
+
 ## Third-party libraries
 
 - chess.js — BSD-2-Clause
 - react, react-dom, react-chessboard — MIT
 - vite, vitest, typescript — MIT
+- Figtree and JetBrains Mono fonts (bundled via @fontsource) — SIL Open Font License 1.1
 
 ## Trademarks
 
-Chess.com™ is a trademark of Chess.com, LLC. This project is an independent, unaffiliated
-learning project and is not endorsed by or connected with Chess.com, LLC. Lichess™ belongs
-to the Lichess community project.
+Chess.com™ is a trademark of Chess.com, LLC. Owlchess is an independent, unaffiliated
+project and is not endorsed by or connected with Chess.com, LLC. Lichess™ belongs to the
+Lichess community project.

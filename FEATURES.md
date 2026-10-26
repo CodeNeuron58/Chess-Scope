@@ -1,4 +1,4 @@
-# FEATURES.md — Master Feature Checklist
+# FEATURES.md — Owlchess Master Feature Checklist
 
 The single list: what's shipped, what to build now, later, and everything to polish.
 Details live in [ROADMAP.md](ROADMAP.md) (priorities), [RESEARCH.md](RESEARCH.md) (behavior specs
@@ -72,6 +72,46 @@ Legend: [x] shipped & verified · [~] partial · [ ] not started
 
 ---
 
+## 2b. v2 — Owlchess redesign (shipped, verified in browser)
+
+New name (Owlchess), new forest design system and a multi-page app shell: left rail with
+Home · Review · Analysis · Library · Insights · Drills · Settings (hash routes, phone bottom bar).
+
+- [x] **Design system**: palette/typography tokens from the design (Figtree + JetBrains Mono,
+      bundled locally — no font CDN), pill buttons, segmented controls, cards, toggles, toasts.
+- [x] **Board**: 5 board themes (Forest, Walnut, Slate, Olive, Ash) and 5 open-licensed piece sets
+      (cburnett, merida, chessnut, fantasy, celtic); classification chip on the moved piece's
+      square; design-style arrows; click-to-move with legal-move dots; captured pieces + material.
+- [x] **Local game library (IndexedDB)**: every loaded/imported/reviewed game; full reviews stored
+      so reviewed games reopen instantly; search, filters, sort, pagination, multi-select, remove,
+      export as PGN.
+- [x] **Accounts**: chess.com and Lichess by username (public APIs), auto-sync when stale (15 min),
+      sync status; the username marks which side is "you".
+- [x] **Import**: game link (Lichess fetched directly; chess.com via synced library), PGN (multi-game
+      files go to the Library), FEN (opens the analysis board), username, .pgn upload.
+- [x] **Background batch review queue** ("Review selected", auto-review of up to 5 new synced
+      games); yields the engine to foreground reviews/analysis.
+- [x] **Game Review page**: report (accuracy, game rating, eval graph, classification table with
+      jump-to), guided coach walkthrough (explanation level, voice, auto-advance, reveal overlays),
+      key-moments filter, engine/depth menu, per-game Skills/Advanced dialogs kept.
+- [x] **Analysis board**: live Stockfish with progressive depth (to 30), 1–3 lines, clickable lines,
+      threat arrow, Explorer tab — "My games" (local) + Masters/Lichess (needs a free Lichess token).
+- [x] **Insights**: KPIs with period deltas, accuracy over time vs opponents, skills by position type
+      (vs opponents in the same games), accuracy by phase as White/Black, where win% was lost, clock
+      stats from `%clk`, openings table with common mistakes → drills.
+- [x] **Drills page**: daily set (fixed per day), by theme (mate/fork/hanging/tactic/missed win/
+      positional), mixed, this game, per opening; multiple choice + free moves (engine-checked);
+      hint ladder; streak + weekly tally.
+- [x] **Settings**: engine, depth (incl. Max 22), lines, board/pieces/coords/animation/move sounds,
+      coach, review, accounts (+ Lichess token, chess.com proxy), data, About/credits & licences.
+- [x] Engine fixes found during the redesign: positions with fewer than 3 legal moves no longer fall
+      back to depth-1 data (MultiPV capped by legal moves); `init()` is idempotent; `stop()` only
+      stops its own caller's search; stalled searches are stopped before resolving.
+- [x] Drill answers judged on win% lost (≤ 1.5) instead of calibrated move accuracy ≥ 96, which
+      after the ×3.04 calibration only accepted moves within ~3 centipawns of best.
+
+---
+
 ## 3. Build SOON (v2 — differentiators)
 
 - [ ] **Eval cache (IndexedDB)**: FEN→eval store, "cached" badge, instant re-reviews.
@@ -79,8 +119,9 @@ Legend: [x] shipped & verified · [~] partial · [ ] not started
       sharpness = win%+loss% (novel stat, no competitor shows it).
 - [ ] **Two-speed analysis**: "Blunder-check" mode (fast pass, flags only ?!/??: ChessBase model)
       for 30-second reviews.
-- [ ] **Multi-game import + local archive**: paste/archive PGNs, store analyzed games in IndexedDB.
-- [ ] **Local Insights** (chess.com Diamond analytics, free here): accuracy over time, accuracy by
+- [x] **Multi-game import + local archive**: paste/archive PGNs, store analyzed games in IndexedDB.
+- [~] **Local Insights** (shipped: accuracy over time, phases, openings, leaks, clock stats; still
+      open: accuracy by move number, results by opponent strength, "game shapes") (chess.com Diamond analytics, free here): accuracy over time, accuracy by
       move number, performance by opening/ECO, results by opponent strength, repeat-blunder
       clustering (motif/phase/piece), "game shapes".
 - [ ] **Time-vs-eval overlay**: parse `%clk` comments, think-time graph over eval graph, flag
@@ -96,7 +137,7 @@ Legend: [x] shipped & verified · [~] partial · [ ] not started
 
 ## 4. LATER (big bets / platform)
 
-- [ ] **Opening explorer**: Lichess free API (masters + lichess DBs, WDL bars per move) with
+- [~] **Opening explorer** (shipped: local "My games" + token-gated Lichess Masters/Online): Lichess free API (masters + lichess DBs, WDL bars per move) with
       bundled offline fallback.
 - [ ] **Repertoire trainer**: spaced repetition (SM-2) over opening lines + deviation detection
       from real games.
@@ -107,7 +148,7 @@ Legend: [x] shipped & verified · [~] partial · [ ] not started
 - [ ] **LLM coach layer (BYO API key)**: LLM prose grounded in engine output; template coach stays
       as offline fallback. Off by default.
 - [ ] **Shareable review**: self-contained HTML export / annotated PGN.
-- [ ] **Batch review queue**: review a whole archive overnight-style → feeds Insights.
+- [x] **Batch review queue**: review a whole archive overnight-style → feeds Insights.
 - [ ] **Desktop app** (Tauri wrapper) as one-time purchase.
 
 ---
@@ -119,19 +160,19 @@ Legend: [x] shipped & verified · [~] partial · [ ] not started
       this. Don't use drag automation against this app.
 - [ ] **Coach audio verification** — toggle + code wired but actual sound never audited (test in
       real Chrome; check autoplay policies).
-- [ ] **Mobile / responsive layout** — side panel is fixed 400px; needs stacked layout + touch
+- [~] **Mobile / responsive layout** (stacked layout + phone tab bar shipped; touch drag unverified) — side panel is fixed 400px; needs stacked layout + touch
       drag support check (react-chessboard touch behavior unverified).
 - [ ] **Engine download progress** — 94MB SF19 Full first load has no progress indicator.
 - [ ] **Promotion UX** — auto-queen only; add promotion piece picker.
-- [ ] **Captured pieces display** in player cards (chess.com shows material).
+- [x] **Captured pieces display** in player cards (chess.com shows material).
 - [ ] **Accuracy chip clipping** on narrow widths (minor CSS, `ACC` label overflows).
 - [ ] **Engine load failure UX** — friendly error + retry button instead of status-line text.
 - [ ] **Modal a11y**: focus trap, ESC to close, aria roles; `prefers-reduced-motion` support.
-- [ ] **Unit tests** — classify/accuracy/skills/coach are pure functions begging for Vitest suites
+- [x] **Unit tests** (accuracy, classify, PGN export, library metadata/summaries/drills/stats/explorer) — classify/accuracy/skills/coach are pure functions begging for Vitest suites
       (protect the math when tuning thresholds).
-- [ ] **Theme system** — board themes (green/wood/brown) + light/dark page themes; settings drawer.
+- [~] **Theme system** (5 board themes + 5 piece sets shipped; no light page theme yet) — board themes (green/wood/brown) + light/dark page themes; settings drawer.
 - [ ] **Figurine notation option** in move list (chess.com uses figurines by default).
-- [ ] **FEN / position setup** — Set-Up-Position board (drag pieces, castling rights, side to move).
+- [~] **FEN / position setup** (FEN import shipped; set-up board still open) — Set-Up-Position board (drag pieces, castling rights, side to move).
 - [ ] **ESLint/oxlint pass + CI** (GitHub Actions: typecheck + build + tests).
 - [ ] **Privacy page** ("no account, no telemetry, runs locally") — core selling point, needs its
       own page.
@@ -139,7 +180,7 @@ Legend: [x] shipped & verified · [~] partial · [ ] not started
 
 ## 6. Launch checklist (business-side — details in BUSINESS.md)
 
-- [ ] Rename away from anything chess.com; trademark-clean name + domain
+- [x] Rename away from anything chess.com — now **Owlchess** (domain still open)
 - [ ] Keep Stockfish GPL notices + source links (required)
 - [ ] GitHub Sponsors + Buy Me a Coffee buttons in repo
 - [ ] Waitlist/Pro skeleton on hosted version (don't gate local features)

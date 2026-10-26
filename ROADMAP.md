@@ -1,4 +1,4 @@
-# ChessScope — Feature Roadmap
+# Owlchess — Feature Roadmap
 
 Research basis: feature inventory of Lichess + chess.com analysis ecosystems, and a market scan
 (ChessTempo, DecodeChess, Aimchess, ChessBase, 2024–2026 indie tools). Everything below is

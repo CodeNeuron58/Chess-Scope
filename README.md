@@ -1,58 +1,62 @@
-# ChessScope — Game Review
+# Owlchess
 
-A local, private alternative to chess.com's Game Review — built with open-source components and
-zero chess.com code or assets. The engine runs **in your browser**: no account, no server, no
-telemetry, nothing leaves your machine.
+Private chess game review that runs entirely in your browser. Stockfish analyses every move,
+rates it (Brilliant → Blunder), scores both players' accuracy, and a coach walks you through the
+game. Your games build into a local library that powers Insights and drills made from your own
+mistakes. No account, no server, no telemetry — nothing leaves your machine except the imports
+you ask for.
 
 ## Run it
 
 ```bash
-npm install
-npm run dev        # → http://localhost:5199
+npm install        # also copies the Stockfish builds into public/engines/
+npm run dev        # → http://localhost:5173
 npm run build      # production build
+npm run test       # unit tests (vitest)
+npm run lint       # oxlint
 ```
+
+## Pages
+
+| Page | What it does |
+|---|---|
+| **Home** | Import a game (link, PGN, FEN, username, .pgn file), continue where you left off, your headline stats, recent games, today's drill, connected accounts |
+| **Review** | Game report (accuracy, game rating, eval graph, move classifications), guided coach walkthrough with voice, key moments, engine lines, per-game Skills and Advanced stats |
+| **Analysis** | Free analysis board with live Stockfish (to depth 30, 1–3 lines), threat arrow, opening explorer |
+| **Library** | Every game you've loaded, imported or synced; search, filter, batch review, export |
+| **Insights** | Accuracy over time, skills by position type, accuracy by phase, where you lose points, clock stats, openings |
+| **Drills** | Positions from your own mistakes: daily set, by theme, mixed, this game, per opening |
+| **Settings** | Engine and depth, board theme and pieces, coach, review, accounts, your data, credits |
 
 ## Engines
 
-Stockfish runs locally as WASM (chess.com's own open-source stockfish.js port, GPLv3):
+Stockfish runs locally as WebAssembly (GPLv3):
 
 | Engine | Download | Best for |
 |---|---|---|
-| Stockfish 19 (full) | 94 MB | Deepest analysis — the default |
-| Stockfish 19 Lite | 1.7 MB | Instant load, still far above human level |
-| Stockfish 16 | 40 MB | Legacy comparison |
+| Stockfish 19 | 94 MB | Deepest analysis — the default, and what accuracy is calibrated against (depth 14) |
+| Stockfish 19 lite | 1.7 MB | Instant load, slightly weaker |
+| Stockfish 16 | 40 MB | Previous generation |
 
-## Features
+## Accounts and network use
 
-- **chess.com connection** — enter your username (no password, public API only) and browse your
-  real game archive; one click loads any game and starts the review automatically.
-- **Game Review** — every position analyzed (MultiPV 3), live progress, cancel.
-- **Move classifications** — Brilliant !! → Blunder ?? (11 classes with chess.com's color language),
-  plus per-player **accuracy** (public chess.com accuracy model) and **Game Rating**.
-- **Coach review** — move-by-move commentary, Explain/Best buttons, coach voice (Web Speech API),
-  reveal overlays (Show fork / lost piece / mate).
-- **Mistake drills** — replay every mistake/blunder/missed win with your move hidden, find the
-  better move yourself, engine-validated, hint ladder included.
-- **Threat display** (X) — see the opponent's best reply as a red arrow.
-- **Skills panel** — captures/checks/castles/free-piece opportunity meters per player.
-- **Advanced Stats** — accuracy per phase (opening/tactics/strategy/endgame).
-- **Eval graph** (±10), engine lines, best-move arrows, opening name + "out of book" marker.
-- **PGN import/export** — export includes classification glyphs as standard PGN NAGs.
-- Settings persist locally; keyboard navigation (←/→/Home/End/X); board flip; play new moves
-  on the board.
+- **chess.com** and **Lichess**: enter a username; recent public games are imported through each
+  site's official public API (no password). Owlchess re-syncs when the last sync is over 15 minutes
+  old and can review up to five new games in the background.
+- **Lichess opening explorer**: Lichess has required a personal API token for its explorer since
+  March 2026. Add a free token (no scopes) in Settings → Accounts to use the Masters and Lichess
+  databases. The "My games" explorer works offline from your library.
+- Everything else — the engine, your library (IndexedDB), drills progress and settings
+  (localStorage) — stays in the browser.
 
 ## Project docs
 
-- [FEATURES.md](FEATURES.md) — full feature checklist (shipped / now / later)
-- [ROADMAP.md](ROADMAP.md) — prioritized plan
 - [ARCHITECTURE.md](ARCHITECTURE.md) — codebase structure and design rules
-- [RESEARCH.md](RESEARCH.md) — market research archive
-- [BUSINESS.md](BUSINESS.md) — monetization notes
+- [FEATURES.md](FEATURES.md) — feature checklist (shipped / now / later)
+- [ROADMAP.md](ROADMAP.md) — prioritised plan
+- [RESEARCH.md](RESEARCH.md) — market research and accuracy calibration archive
+- [LICENSE.md](LICENSE.md) — MIT app code; GPL engines; piece-set licences
 
-## Project
-
-Built as a self-contained learning project: React + Vite + TypeScript, chess.js for rules,
-react-chessboard for the board, and the `stockfish` npm WASM builds (GPL) for analysis — the
-same open-source engine family chess.com ships in their own web client. The review experience
-follows the UX conventions chess.com established, re-implemented from scratch with original
-code and assets. Not affiliated with chess.com.
+Built with React, Vite and TypeScript, chess.js for rules, react-chessboard for the board and the
+`stockfish` npm WebAssembly builds. Piece sets come from lichess-org/lila under their own licences
+(see `public/pieces/LICENSES.md`). Not affiliated with chess.com or Lichess.

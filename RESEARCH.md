@@ -1,4 +1,4 @@
-# ChessScope — Research Archive (feature inventory from market scan)
+# Owlchess — Research Archive (feature inventory from market scan)
 
 Everything below was researched from official docs, changelogs, and product pages
 (Lichess, chess.com, ChessTempo, DecodeChess, Aimchess, ChessBase + 2024–26 indie tools).

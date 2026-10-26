@@ -1,7 +1,7 @@
 {
-  "name": "chessscope",
+  "name": "owlchess",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -12,6 +12,8 @@
     "postinstall": "node scripts/copy-engines.mjs"
   },
   "dependencies": {
+    "@fontsource-variable/figtree": "^5.3.0",
+    "@fontsource/jetbrains-mono": "^5.3.0",
     "chess.js": "^1.0.0",
     "react": "^19.3.1",
     "react-chessboard": "^4.7.3",
@@ -30,6 +32,6 @@
     "vite": "^8.3.4",
     "vitest": "^5.0.5"
   },
-  "description": "Local, private chess game review — Stockfish NNUE analysis, move classifications, accuracy scores, and an interactive coach. Runs entirely in your browser.",
+  "description": "Owlchess — private chess game review in your browser: Stockfish analysis, move ratings, accuracy, a guided coach, a game library, insights and drills from your own mistakes.",
   "license": "MIT"
 }

@@ -1,0 +1,110 @@
+.board {
+  position: relative;
+  flex: none;
+  border-radius: 6px;
+  box-shadow: var(--shadow-board);
+}
+.board__arrows {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 6;
+  overflow: visible;
+}
+.board__mark {
+  position: absolute;
+  z-index: 7;
+  box-sizing: border-box;
+  padding: 0 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  border-radius: 999px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+  animation: owl-fade 0.18s ease;
+}
+
+/* review progress overlay */
+.board-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  border-radius: 6px;
+  background: rgba(16, 28, 22, 0.62);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.board-overlay__card {
+  width: 280px;
+  max-width: calc(100% - 32px);
+  padding: 24px;
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  text-align: center;
+}
+.board-overlay__title {
+  font-weight: 600;
+  font-size: 16px;
+}
+.board-overlay__meta {
+  font-size: 12.5px;
+  color: var(--text-3);
+}
+.board-overlay__fact {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #c1d0c7;
+  text-wrap: pretty;
+}
+
+/* static mini board (cards, previews) */
+.mini-board {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  grid-template-rows: repeat(8, minmax(0, 1fr));
+  user-select: none;
+  container-type: inline-size;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.mini-board__sq {
+  position: relative;
+}
+.mini-board__sq img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+}
+.mini-board__coord {
+  position: absolute;
+  z-index: 2;
+  font-weight: 600;
+  font-size: max(8px, 1.9cqw);
+  line-height: 1;
+}
+.mini-board__coord--rank {
+  left: 5%;
+  top: 4%;
+}
+.mini-board__coord--file {
+  right: 6%;
+  bottom: 4%;
+}

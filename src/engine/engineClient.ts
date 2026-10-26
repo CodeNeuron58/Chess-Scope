@@ -12,6 +12,10 @@ export interface PositionEval {
 export interface AnalyseOptions {
   /** Called each time a new depth completes (live analysis). */
   onUpdate?: (update: PositionEval) => void
+  /** Lines to search (MultiPV). Fewer lines is faster. Default 3. */
+  multiPv?: number
+  /** Stop after this many milliseconds even if the depth is not reached. */
+  movetime?: number
 }
 
 interface SearchOutcome extends PositionEval {
@@ -137,10 +141,29 @@ function buildEval(
 
 export type EngineChoice = 'sf19-full' | 'sf19-lite' | 'sf16'
 
+/**
+ * Single-threaded WASM builds. Measured in Chrome (2026-10, 16 cores): the
+ * multi-threaded builds reach a fixed depth no faster — often slower — so
+ * speed comes from running several engines in parallel instead (EnginePool).
+ */
 export const ENGINE_FILES: Record<EngineChoice, string> = {
   'sf19-full': 'stockfish-19-single.js',
   'sf19-lite': 'stockfish-19-lite-single.js',
   sf16: 'stockfish-nnue-16-single.js',
+}
+
+/**
+ * Engines to run side by side for reviews: half the cores, at most 4. Four
+ * single-threaded engines reviewed a 66-position game at depth 14 in ~20 s
+ * versus ~165 s for one engine; eight were slower again (memory contention).
+ */
+export function poolSize(): number {
+  if (typeof navigator === 'undefined') return 1
+  const cores = navigator.hardwareConcurrency || 2
+  // each full engine holds its own ~100 MB network: stay small on low-memory devices
+  const memoryGb = (navigator as Navigator & { deviceMemory?: number }).deviceMemory
+  const cap = memoryGb !== undefined && memoryGb <= 4 ? 2 : 4
+  return Math.max(1, Math.min(cap, Math.floor(cores / 2)))
 }
 
 export class EngineClient {
@@ -152,13 +175,17 @@ export class EngineClient {
   private currentFen = ''
   readonly choice: EngineChoice
 
-  constructor(choice: EngineChoice = 'sf19-full') {
+  /** Transposition table size in MB (pool members use less each). */
+  private readonly hashMb: number
+
+  constructor(choice: EngineChoice = 'sf19-full', hashMb = 128) {
     this.choice = choice
+    this.hashMb = hashMb
   }
 
   private ensureWorker(): Worker {
     if (this.worker) return this.worker
-    const w = new Worker(`/engines/${ENGINE_FILES[this.choice]}`)
+    const w = new Worker(`${import.meta.env.BASE_URL}engines/${ENGINE_FILES[this.choice]}`)
     this.worker = w
     w.onmessage = (e: MessageEvent<string>) => this.onMessage(String(e.data))
     w.onerror = (e) => {
@@ -207,7 +234,8 @@ export class EngineClient {
     }
   }
 
-  private multiPV = 3
+  /** MultiPV currently set on the engine (0 = not set since the worker started). */
+  private multiPV = 0
   /** Lines the current search can produce: MultiPV capped by the legal move count. */
   private expectedLines = 3
   private onUpdate: AnalyseOptions['onUpdate'] = undefined
@@ -232,8 +260,7 @@ export class EngineClient {
     })
     w.postMessage('uci')
     await done
-    w.postMessage('setoption name MultiPV value 3')
-    w.postMessage('setoption name Hash value 128')
+    w.postMessage(`setoption name Hash value ${this.hashMb}`)
     // SF16 needs NNUE enabled explicitly; SF19 removed the option (NNUE-only).
     if (this.choice === 'sf16') w.postMessage('setoption name Use NNUE value true')
     w.postMessage('isready')
@@ -269,13 +296,19 @@ export class EngineClient {
     this.byDepth = new Map()
     this.currentFen = fen
     this.currentSignal = signal
-    let legal = this.multiPV
+    const multiPv = Math.max(1, Math.min(5, opts.multiPv ?? 3))
+    if (multiPv !== this.multiPV) {
+      // the worker is idle here (searches are serialized), so options can change
+      w.postMessage(`setoption name MultiPV value ${multiPv}`)
+      this.multiPV = multiPv
+    }
+    let legal = multiPv
     try {
       legal = new Chess(fen).moves().length
     } catch {
       /* malformed FEN — let the engine report it */
     }
-    this.expectedLines = Math.max(1, Math.min(this.multiPV, legal))
+    this.expectedLines = Math.max(1, Math.min(multiPv, legal))
     this.onUpdate = opts.onUpdate
     const outcome = new Promise<SearchOutcome>((resolve, reject) => {
       this.searchResolve = resolve
@@ -295,7 +328,7 @@ export class EngineClient {
       }, 30000 + depth * 1500)
     })
     w.postMessage(`position fen ${fen}`)
-    w.postMessage(`go depth ${depth}`)
+    w.postMessage(opts.movetime ? `go depth ${depth} movetime ${Math.round(opts.movetime)}` : `go depth ${depth}`)
     try {
       const res = await outcome
       if (signal.cancelled) throw new Error('cancelled')
@@ -321,6 +354,7 @@ export class EngineClient {
     this.worker?.terminate()
     this.worker = null
     this.ready = null
+    this.multiPV = 0
     this.searchResolve = null
     this.searchReject?.(new Error('cancelled'))
     this.searchReject = null
@@ -333,4 +367,38 @@ export class EngineClient {
 
 export function positionToReview(index: number, fen: string, evalResult: PositionEval): PlyReview {
   return { index, fen, whiteCp: evalResult.whiteCp, mateIn: evalResult.mateIn, lines: evalResult.lines, bestUci: evalResult.lines[0]?.uciFirst ?? '' }
+}
+
+/**
+ * Several engines of one kind for batch work (reviews). Member 0 is also the
+ * app's main engine for single-position work (analysis board, threats, drills),
+ * so a pool of n costs n - 1 extra workers, created on first batch use.
+ */
+export class EnginePool {
+  readonly choice: EngineChoice
+  readonly clients: EngineClient[]
+
+  /** The main engine gets the larger hash (it also serves the analysis board). */
+  constructor(choice: EngineChoice, size = poolSize(), mainHashMb = 64, memberHashMb = 32) {
+    this.choice = choice
+    this.clients = [new EngineClient(choice, mainHashMb)]
+    for (let i = 1; i < size; i++) this.clients.push(new EngineClient(choice, memberHashMb))
+  }
+
+  get main(): EngineClient {
+    return this.clients[0]
+  }
+
+  init(): Promise<void> {
+    return Promise.all(this.clients.map((c) => c.init())).then(() => undefined)
+  }
+
+  /** Stop a caller's searches on every member. */
+  stop(signal?: { cancelled: boolean }): void {
+    for (const c of this.clients) c.stop(signal)
+  }
+
+  destroy(): void {
+    for (const c of this.clients) c.destroy()
+  }
 }

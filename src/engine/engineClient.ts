@@ -5,6 +5,13 @@ export interface PositionEval {
   whiteCp: number
   mateIn?: number
   lines: EngineLine[]
+  /** Deepest depth at which every requested line was complete. */
+  depth?: number
+}
+
+export interface AnalyseOptions {
+  /** Called each time a new depth completes (live analysis). */
+  onUpdate?: (update: PositionEval) => void
 }
 
 interface SearchOutcome extends PositionEval {
@@ -125,7 +132,7 @@ function buildEval(
       }
     }
   }
-  return { whiteCp, mateIn, lines, bestUci: lines[0]?.uciFirst ?? '' }
+  return { whiteCp, mateIn, lines, bestUci: lines[0]?.uciFirst ?? '', depth: chosenDepth }
 }
 
 export type EngineChoice = 'sf19-full' | 'sf19-lite' | 'sf16'
@@ -134,12 +141,6 @@ export const ENGINE_FILES: Record<EngineChoice, string> = {
   'sf19-full': 'stockfish-19-single.js',
   'sf19-lite': 'stockfish-19-lite-single.js',
   sf16: 'stockfish-nnue-16-single.js',
-}
-
-export const ENGINE_LABELS: Record<EngineChoice, string> = {
-  'sf19-full': 'Stockfish 19 (full)',
-  'sf19-lite': 'Stockfish 19 Lite',
-  sf16: 'Stockfish 16',
 }
 
 export class EngineClient {
@@ -183,12 +184,17 @@ export class EngineClient {
           this.byDepth.set(parsed.depth, m)
         }
         m.set(parsed.multipv, parsed.raw)
+        // the last line of a depth completes it — report progress for live analysis
+        if (this.onUpdate && parsed.multipv >= this.expectedLines) {
+          const { bestUci: _drop, ...update } = buildEval(this.currentFen, this.byDepth, this.expectedLines)
+          this.onUpdate(update)
+        }
       }
       return
     }
     if (text.startsWith('bestmove')) {
       const best = text.split(/\s+/)[1] ?? ''
-      const outcome = buildEval(this.currentFen, this.byDepth, this.multiPV)
+      const outcome = buildEval(this.currentFen, this.byDepth, this.expectedLines)
       outcome.bestUci = best
       this.searchResolve?.(outcome)
       this.searchResolve = null
@@ -202,8 +208,24 @@ export class EngineClient {
   }
 
   private multiPV = 3
+  /** Lines the current search can produce: MultiPV capped by the legal move count. */
+  private expectedLines = 3
+  private onUpdate: AnalyseOptions['onUpdate'] = undefined
 
-  async init(): Promise<void> {
+  private ready: Promise<void> | null = null
+
+  /** Start the worker and configure UCI once; repeated calls share the same handshake. */
+  init(): Promise<void> {
+    if (!this.ready) {
+      this.ready = this.handshake().catch((e) => {
+        this.ready = null
+        throw e
+      })
+    }
+    return this.ready
+  }
+
+  private async handshake(): Promise<void> {
     const w = this.ensureWorker()
     const done = new Promise<void>((resolve) => {
       this.initResolve = resolve
@@ -221,9 +243,14 @@ export class EngineClient {
     await ready
   }
 
-  async analyse(fen: string, depth: number, signal: { cancelled: boolean }): Promise<PositionEval> {
+  async analyse(
+    fen: string,
+    depth: number,
+    signal: { cancelled: boolean },
+    opts: AnalyseOptions = {},
+  ): Promise<PositionEval> {
     // Serialize: interleaved UCI searches on one worker corrupt each other.
-    const run = () => this.runAnalyse(fen, depth, signal)
+    const run = () => this.runAnalyse(fen, depth, signal, opts)
     const result = this.taskQueue.then(run, run)
     this.taskQueue = result.catch(() => undefined)
     return result
@@ -231,33 +258,69 @@ export class EngineClient {
 
   private taskQueue: Promise<unknown> = Promise.resolve()
 
-  private async runAnalyse(fen: string, depth: number, signal: { cancelled: boolean }): Promise<PositionEval> {
+  private async runAnalyse(
+    fen: string,
+    depth: number,
+    signal: { cancelled: boolean },
+    opts: AnalyseOptions,
+  ): Promise<PositionEval> {
     const w = this.ensureWorker()
     if (signal.cancelled) throw new Error('cancelled')
     this.byDepth = new Map()
     this.currentFen = fen
+    this.currentSignal = signal
+    let legal = this.multiPV
+    try {
+      legal = new Chess(fen).moves().length
+    } catch {
+      /* malformed FEN — let the engine report it */
+    }
+    this.expectedLines = Math.max(1, Math.min(this.multiPV, legal))
+    this.onUpdate = opts.onUpdate
     const outcome = new Promise<SearchOutcome>((resolve, reject) => {
       this.searchResolve = resolve
       this.searchReject = reject
+      // Stalled search: ask the engine to stop (its bestmove resolves us), then
+      // fall back to the deepest completed depth if even that never arrives.
       setTimeout(() => {
-        if (this.searchResolve === resolve) {
-          this.searchResolve = null
-          this.searchReject = null
-          resolve(buildEval(fen, this.byDepth, this.multiPV))
-        }
+        if (this.searchResolve !== resolve) return
+        this.worker?.postMessage('stop')
+        setTimeout(() => {
+          if (this.searchResolve === resolve) {
+            this.searchResolve = null
+            this.searchReject = null
+            resolve(buildEval(fen, this.byDepth, this.expectedLines))
+          }
+        }, 5000)
       }, 30000 + depth * 1500)
     })
     w.postMessage(`position fen ${fen}`)
     w.postMessage(`go depth ${depth}`)
-    const res = await outcome
-    if (signal.cancelled) throw new Error('cancelled')
-    const { bestUci: _drop, ...evalOnly } = res
-    return evalOnly
+    try {
+      const res = await outcome
+      if (signal.cancelled) throw new Error('cancelled')
+      const { bestUci: _drop, ...evalOnly } = res
+      return evalOnly
+    } finally {
+      this.onUpdate = undefined
+    }
+  }
+
+  private currentSignal: { cancelled: boolean } | null = null
+
+  /**
+   * End a running search early; it resolves with the deepest completed depth.
+   * With a signal, only that caller's search is stopped (the engine is shared).
+   */
+  stop(signal?: { cancelled: boolean }): void {
+    if (signal && signal !== this.currentSignal) return
+    if (this.searchResolve) this.worker?.postMessage('stop')
   }
 
   cancel(): void {
     this.worker?.terminate()
     this.worker = null
+    this.ready = null
     this.searchResolve = null
     this.searchReject?.(new Error('cancelled'))
     this.searchReject = null

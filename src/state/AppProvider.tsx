@@ -4,7 +4,7 @@ import { useEngine, useGameState, useLibrary, useReview, useReviewQueue, useSett
 import { accountNames } from '../hooks/useSettings'
 import { movesKey } from '../hooks/useReview'
 import { syncIsStale } from '../hooks/useLibrary'
-import { gameFromPgn, splitPgn } from '../library/pgnMeta'
+import { gameFromPgn, speedOf, splitPgn } from '../library/pgnMeta'
 import { buildSummary } from '../library/summary'
 import type { GameSource, StoredGame } from '../library/types'
 import type { ReviewResult } from '../types'
@@ -12,15 +12,17 @@ import { playMoveSound, soundFor } from '../lib/sound'
 import { AppContext, type AppState, type OpenOptions, type ReviewTab } from './context'
 import { Toast } from '../components/Toast'
 
-/** How many newly synced games get reviewed automatically per sync. */
-const AUTO_REVIEW_LIMIT = 5
+/** Newly synced games played within this window are reviewed in the background… */
+const AUTO_REVIEW_DAYS = 14
+/** …up to this many per sync, newest first. */
+const AUTO_REVIEW_LIMIT = 25
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [route, navigate] = useRoute()
   const settings = useSettings()
   const names = useMemo(() => accountNames(settings.accounts), [settings.accounts])
   const game = useGameState()
-  const { getEngine, destroyEngine } = useEngine()
+  const { getEngine, getPool, getQuickPool, destroyEngine } = useEngine()
   const library = useLibrary(settings.accounts)
   const [toastMsg, setToastMsg] = useState<{ text: string; id: number } | null>(null)
   const [reviewTab, setReviewTab] = useState<ReviewTab>('summary')
@@ -57,11 +59,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [library, toast],
   )
 
+  // ratings + time control from the PGN feed the rating-aware classification and Game Rating
+  const { WhiteElo, BlackElo, TimeControl } = game.headers
+  const reviewContext = useMemo(() => {
+    const elo = (v?: string) => (v && Number(v) > 0 ? Number(v) : undefined)
+    return { whiteElo: elo(WhiteElo), blackElo: elo(BlackElo), speed: speedOf(TimeControl) }
+  }, [WhiteElo, BlackElo, TimeControl])
+
   const review = useReview({
     moves: game.moves,
+    context: reviewContext,
     depth: settings.depth,
     engineChoice: settings.engineChoice,
-    getEngine,
+    getPool,
+    getQuickPool,
     destroyEngine,
     onComplete: onReviewComplete,
   })
@@ -71,8 +82,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     library,
     engineChoice: settings.engineChoice,
     depth: settings.depth,
-    getEngine,
-    paused: review.reviewing || liveActive,
+    getPool,
+    paused: review.reviewing || review.refining || liveActive,
   })
 
   const openGame = useCallback(
@@ -185,6 +196,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, [currentGame, game, names, library, boardKey])
 
+  const warmEngines = useCallback(() => {
+    for (const e of getPool(settings.engineChoice)) void e.init().catch(() => undefined)
+  }, [getPool, settings.engineChoice])
+
+  // background-review freshly synced games so they open instantly
+  const libraryRef = useRef(library)
+  useEffect(() => {
+    libraryRef.current = library
+  }, [library])
+  const queueNewGames = useCallback(
+    (ids: string[]) => {
+      if (!settings.autoReview || ids.length === 0) return
+      const since = Date.now() - AUTO_REVIEW_DAYS * 86_400_000
+      // ids arrive newest first; records may not be in this render's map yet
+      const recent = ids.filter((id) => {
+        const g = libraryRef.current.byId.get(id)
+        return !g || g.playedAt >= since
+      })
+      queue.enqueue(recent.slice(0, AUTO_REVIEW_LIMIT))
+    },
+    [settings.autoReview, queue],
+  )
+
   // remember where the user is in a library game (for "Continue"), debounced
   const currentId = currentGame?.id
   useEffect(() => {
@@ -211,9 +245,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (!library.loaded || syncedOnce.current) return
     syncedOnce.current = true
     if (!syncIsStale(settings.accounts, library.lastSync)) return
-    void library.sync().then(({ fresh }) => {
-      if (settings.autoReview && fresh.length > 0) queue.enqueue(fresh.slice(0, AUTO_REVIEW_LIMIT))
-    })
+    void library.sync().then(({ fresh }) => queueNewGames(fresh))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [library.loaded])
 
@@ -239,6 +271,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     liveEngine,
     setLiveEngine,
     toast,
+    queueNewGames,
+    warmEngines,
   }
 
   return (

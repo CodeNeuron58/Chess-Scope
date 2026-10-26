@@ -1,15 +1,18 @@
 /**
- * Local game library in IndexedDB (no dependencies). Two stores:
+ * Local game library in IndexedDB (no dependencies). Three stores:
  * `games` holds the light records the UI lists; `reviews` holds the full
- * ReviewResult per game so a reviewed game reopens without re-analysis.
+ * ReviewResult per game so a reviewed game reopens without re-analysis;
+ * `evals` caches engine results per position so repeated positions are free.
  */
 import type { ReviewResult } from '../types'
+import type { PositionEval } from '../engine/engineClient'
 import type { StoredGame } from './types'
 
 const DB_NAME = 'owlchess'
-const VERSION = 1
+const VERSION = 2
 const GAMES = 'games'
 const REVIEWS = 'reviews'
+const EVALS = 'evals'
 
 let dbPromise: Promise<IDBDatabase> | null = null
 
@@ -21,6 +24,7 @@ function openDb(): Promise<IDBDatabase> {
       const db = req.result
       if (!db.objectStoreNames.contains(GAMES)) db.createObjectStore(GAMES, { keyPath: 'id' })
       if (!db.objectStoreNames.contains(REVIEWS)) db.createObjectStore(REVIEWS)
+      if (!db.objectStoreNames.contains(EVALS)) db.createObjectStore(EVALS)
     }
     req.onsuccess = () => resolve(req.result)
     req.onerror = () => {
@@ -87,6 +91,47 @@ export async function putReview(id: string, review: ReviewResult): Promise<void>
   tx.objectStore(REVIEWS).put(JSON.parse(JSON.stringify(review)), id)
   await done(tx)
 }
+
+/** Cached engine result for a position searched with the same engine, depth and line count. */
+export async function getEval(key: string): Promise<PositionEval | null> {
+  try {
+    const db = await openDb()
+    const r = await request(db.transaction(EVALS, 'readonly').objectStore(EVALS).get(key))
+    return (r as PositionEval | undefined) ?? null
+  } catch {
+    return null
+  }
+}
+
+export async function putEval(key: string, value: PositionEval): Promise<void> {
+  try {
+    const db = await openDb()
+    const tx = db.transaction(EVALS, 'readwrite')
+    tx.objectStore(EVALS).put(value, key)
+    await done(tx)
+  } catch {
+    /* the cache is best-effort */
+  }
+}
+
+export async function clearEvalCache(): Promise<void> {
+  const db = await openDb()
+  const tx = db.transaction(EVALS, 'readwrite')
+  tx.objectStore(EVALS).clear()
+  await done(tx)
+}
+
+export async function evalCacheSize(): Promise<number> {
+  try {
+    const db = await openDb()
+    return await request(db.transaction(EVALS, 'readonly').objectStore(EVALS).count())
+  } catch {
+    return 0
+  }
+}
+
+/** Engine-result cache in the shape the review pipeline expects. */
+export const evalCache = { get: getEval, put: putEval }
 
 export async function clearLibrary(): Promise<void> {
   const db = await openDb()

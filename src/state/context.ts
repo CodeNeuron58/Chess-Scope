@@ -47,6 +47,10 @@ export interface AppState {
   liveEngine: boolean
   setLiveEngine: React.Dispatch<React.SetStateAction<boolean>>
   toast: (msg: string) => void
+  /** Start loading the review engines ahead of time (they take a few seconds to compile). */
+  warmEngines: () => void
+  /** Queue freshly synced games for background review (respects the auto-review setting). */
+  queueNewGames: (ids: string[]) => void
 }
 
 export const AppContext = createContext<AppState | null>(null)

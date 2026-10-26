@@ -3,6 +3,7 @@ import { Chess, type Move } from 'chess.js'
 import type { EngineChoice, EngineClient } from '../engine/engineClient'
 import { reviewGame } from '../analysis/review'
 import { buildSummary } from '../library/summary'
+import { evalCache } from '../library/db'
 import type { Library } from './useLibrary'
 
 export interface ReviewQueue {
@@ -17,7 +18,7 @@ interface Deps {
   library: Library
   engineChoice: EngineChoice
   depth: number
-  getEngine: (choice: EngineChoice) => EngineClient
+  getPool: (choice: EngineChoice) => EngineClient[]
   /** The foreground needs the engine (a review or live analysis is running). */
   paused: boolean
 }
@@ -27,7 +28,7 @@ interface Deps {
  * engine; when the foreground needs it, the running game is abandoned after
  * its current position and retried later.
  */
-export function useReviewQueue({ library, engineChoice, depth, getEngine, paused }: Deps): ReviewQueue {
+export function useReviewQueue({ library, engineChoice, depth, getPool, paused }: Deps): ReviewQueue {
   const [pending, setPending] = useState<string[]>([])
   const [current, setCurrent] = useState<string | null>(null)
   const [progress, setProgress] = useState({ done: 0, total: 1 })
@@ -55,8 +56,8 @@ export function useReviewQueue({ library, engineChoice, depth, getEngine, paused
   useEffect(() => {
     if (!paused || !signalRef.current) return
     signalRef.current.cancelled = true
-    getEngine(engineChoice).stop(signalRef.current)
-  }, [paused, getEngine, engineChoice])
+    for (const e of getPool(engineChoice)) e.stop(signalRef.current)
+  }, [paused, getPool, engineChoice])
 
   useEffect(() => {
     if (paused || current || pending.length === 0) return
@@ -79,11 +80,13 @@ export function useReviewQueue({ library, engineChoice, depth, getEngine, paused
     setProgress({ done: 0, total: moves.length + 1 })
     void (async () => {
       try {
-        const engine = getEngine(engineChoice)
-        await engine.init()
-        const result = await reviewGame(moves, engine, {
+        const engines = getPool(engineChoice)
+        const result = await reviewGame(moves, engines, {
           depth,
           signal,
+          cache: evalCache,
+          cacheTag: engineChoice,
+          context: { whiteElo: game.whiteElo, blackElo: game.blackElo, speed: game.speed },
           onProgress: (done, total) => setProgress({ done, total }),
         })
         if (signal.cancelled) throw new Error('cancelled')
@@ -98,7 +101,7 @@ export function useReviewQueue({ library, engineChoice, depth, getEngine, paused
         setCurrent(null)
       }
     })()
-  }, [paused, current, pending, depth, engineChoice, getEngine])
+  }, [paused, current, pending, depth, engineChoice, getPool])
 
   return { pending, current, progress, enqueue, cancel }
 }

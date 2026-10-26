@@ -1,5 +1,5 @@
 import { Chess } from 'chess.js'
-import { openingName } from '../analysis/openings'
+import { openingInfo } from '../analysis/openings'
 import type { Color, GameResult, GameSource, Speed, StoredGame } from './types'
 
 /** FNV-1a 32-bit hash as hex — stable ids for uploaded games. */
@@ -144,10 +144,8 @@ export function parseGame(pgn: string): ParsedGame {
   const resultHeader = h.Result as GameResult | undefined
   let result: GameResult = resultHeader && ['1-0', '0-1', '1/2-1/2'].includes(resultHeader) ? resultHeader : '*'
   if (result === '*' && chess.isCheckmate()) result = chess.turn() === 'w' ? '0-1' : '1-0'
-  const opening =
-    (h.Opening && h.Opening !== '?' ? h.Opening : undefined) ??
-    openingFromEcoUrl(h.ECOUrl) ??
-    (isStandardStart(h.FEN) ? openingName(sans) ?? undefined : undefined)
+  const book = isStandardStart(h.FEN) ? openingInfo(sans) : null
+  const opening = (h.Opening && h.Opening !== '?' ? h.Opening : undefined) ?? openingFromEcoUrl(h.ECOUrl) ?? book?.name
   return {
     chess,
     headers: h,
@@ -163,7 +161,7 @@ export function parseGame(pgn: string): ParsedGame {
       timeControl: h.TimeControl && h.TimeControl !== '-' ? h.TimeControl : undefined,
       speed: speedOf(h.TimeControl),
       opening,
-      eco: h.ECO && h.ECO !== '?' ? h.ECO : undefined,
+      eco: h.ECO && h.ECO !== '?' ? h.ECO : book?.eco,
       plies: sans.length,
       url: h.Link ?? (h.Site?.startsWith('http') ? h.Site : undefined),
     },

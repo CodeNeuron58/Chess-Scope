@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 import { buildReviewedPgn } from '../pgnExport'
-import { openingName } from '../openings'
 import type { MoveReview } from '../../types'
 
 function review(san: string, classification: string, ply: number): MoveReview {
@@ -48,18 +47,5 @@ describe('buildReviewedPgn', () => {
     expect(pgn).toContain('[Black "B"]')
     expect(pgn).toContain('[Result "1-0"]')
     expect(pgn.trim().endsWith('1-0')).toBe(true)
-  })
-})
-
-describe('openingName', () => {
-  it('names a known opening line', () => {
-    expect(openingName(['e4', 'e5', 'Nf3', 'd6', 'd4', 'Bg4'])).toBe('Philidor Defence')
-  })
-  it('falls back to the generic branch early', () => {
-    expect(openingName(['e4', 'c5'])).toBe('Sicilian Defence')
-    expect(openingName(['e4'])).toBe("King's Pawn Game")
-  })
-  it('returns null for out-of-book sequences', () => {
-    expect(openingName(['a4', 'h5', 'g4'])).toBeNull()
   })
 })

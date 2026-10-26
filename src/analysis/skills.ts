@@ -17,52 +17,35 @@ function emptyStats(): Stats {
 
 const rankOf = (square: string) => Number(square[1])
 
-/** Number of legal moves for `color` that land on `square` (turn field is swapped in the FEN). */
-function movesLandingOn(fen: string, square: string, color: 'w' | 'b'): number {
-  const parts = fen.split(' ')
-  if (parts.length < 2) return 0
-  parts[1] = color
-  let board: Chess
-  try {
-    board = new Chess(parts.join(' '))
-  } catch {
-    return 0
-  }
-  return board.moves({ verbose: true }).filter((m) => m.to === square).length
-}
-
-/** True when the piece on `square` (owned by the opponent of `hunter`) is attacked by the hunter and undefended. */
-function isFreePiece(fen: string, square: string, hunter: 'w' | 'b'): boolean {
-  let board: Chess
-  try {
-    board = new Chess(fen)
-  } catch {
-    return false
-  }
+/**
+ * True when the piece on `square` (owned by the opponent of `hunter`) is
+ * attacked by the hunter and not defended. Uses chess.js attack tables
+ * (pseudo-legal, pins ignored) — far cheaper than generating moves per piece.
+ */
+function isFreePiece(board: Chess, square: string, hunter: 'w' | 'b'): boolean {
   const piece = board.get(square as never)
-  if (!piece || piece.color === hunter) return false
-  if (piece.type === 'k') return false
-  if (movesLandingOn(fen, square, hunter) === 0) return false
-  let stripped: Chess
-  try {
-    stripped = new Chess(fen)
-    stripped.remove(square as never)
-  } catch {
-    return false
-  }
-  return movesLandingOn(stripped.fen(), square, piece.color) === 0
+  if (!piece || piece.color === hunter || piece.type === 'k') return false
+  return board.isAttacked(square as never, hunter) && !board.isAttacked(square as never, piece.color)
 }
 
-function hangingOwnSquares(fen: string, color: 'w' | 'b'): string[] {
-  const board = new Chess(fen)
+function hangingOwnSquares(board: Chess, color: 'w' | 'b'): string[] {
   const out: string[] = []
+  const hunter = color === 'w' ? 'b' : 'w'
   for (const row of board.board()) {
     for (const cell of row) {
       if (!cell || cell.color !== color || cell.type === 'k') continue
-      if (isFreePiece(fen, cell.square, color === 'w' ? 'b' : 'w')) out.push(cell.square)
+      if (isFreePiece(board, cell.square, hunter)) out.push(cell.square)
     }
   }
   return out
+}
+
+function boardOf(fen: string): Chess | null {
+  try {
+    return new Chess(fen)
+  } catch {
+    return null
+  }
 }
 
 const TARGETS: Record<string, number> = {
@@ -93,9 +76,12 @@ export function computeSkills(moves: Move[], positions: PlyReview[]): { white: P
     const after = positions[i + 1]
     if (!before || !after) break
     const s = stats[move.color]
+    const beforeBoard = boardOf(before.fen)
+    const afterBoard = boardOf(after.fen)
+    if (!beforeBoard || !afterBoard) continue
     if (move.flags.includes('c') || move.flags.includes('e')) {
       s.captures++
-      if (isFreePiece(before.fen, move.to, move.color)) s.freeTaken++
+      if (isFreePiece(beforeBoard, move.to, move.color)) s.freeTaken++
     }
     if (move.san.includes('+')) s.checks++
     if (move.flags.includes('k') || move.flags.includes('q')) s.castles++
@@ -105,9 +91,9 @@ export function computeSkills(moves: Move[], positions: PlyReview[]): { white: P
 
     // Defense: had a hanging piece before the move, and that square no longer holds
     // a hanging own piece afterwards (moved away, defended it, or captured the attacker).
-    const hangingBefore = hangingOwnSquares(before.fen, move.color)
+    const hangingBefore = hangingOwnSquares(beforeBoard, move.color)
     if (hangingBefore.length > 0) {
-      const hangingAfter = new Set(hangingOwnSquares(after.fen, move.color))
+      const hangingAfter = new Set(hangingOwnSquares(afterBoard, move.color))
       if (hangingBefore.some((sq) => !hangingAfter.has(sq))) s.defended++
     }
   }

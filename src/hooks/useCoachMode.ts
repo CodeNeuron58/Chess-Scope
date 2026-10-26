@@ -1,11 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { Square } from 'chess.js'
-import type { Move, ReviewResult } from '../types'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { Move, MoveReview, ReviewResult } from '../types'
+import type { ExplainLevel } from './useSettings'
+import type { BoardArrow } from '../components/Board'
 import { PALETTE } from '../lib/constants'
-import { uciToSquares } from '../lib/chessUtils'
 import { findForkTargets, findLostPiece, findMatingLine } from '../analysis/patterns'
-
-export type CoachView = 'speech' | 'explain' | 'alternative'
 
 export interface CoachPatterns {
   fork: boolean
@@ -13,99 +11,99 @@ export interface CoachPatterns {
   mate: boolean
 }
 
-export interface RevealMarkers {
-  arrows: [Square, Square, string?][]
-  style: Record<string, { boxShadow: string }> | null
-}
+export type RevealKind = keyof CoachPatterns
 
 interface Deps {
   ply: number
-  setPly: (p: number) => void
+  setPly: React.Dispatch<React.SetStateAction<number>>
   moves: Move[]
   review: ReviewResult | null
+  /** Narrate while the walkthrough is on screen. */
+  active: boolean
   audioOn: boolean
-  onExit?: () => void
+  autoAdvance: boolean
+  level: ExplainLevel
+}
+
+/** Coach commentary for a move at the chosen explanation level. */
+export function coachText(mr: MoveReview, level: ExplainLevel): string {
+  if (level === 'detailed') return mr.explain ?? mr.speech
+  if (level === 'brief') {
+    const first = /^.*?[.!?](\s|$)/.exec(mr.speech)
+    return first ? first[0].trim() : mr.speech
+  }
+  return mr.speech
 }
 
 /**
- * Interactive coach mode: move-by-move walkthrough with reveal overlays
- * (fork / lost piece / mating line) computed from the stored review.
+ * Guided review: narration (Web Speech API), optional auto-advance after each
+ * explanation, and reveal overlays (fork / lost piece / mating line).
  */
-export function useCoachMode({ ply, setPly, moves, review, audioOn }: Deps): CoachState {
-  const [coachMode, setCoachMode] = useState(false)
-  const [coachView, setCoachView] = useState<CoachView>('speech')
-  const [reveal, setReveal] = useState<'fork' | 'lost' | 'mate' | null>(null)
-
-  const speak = useCallback(
-    (text: string) => {
-      if (!audioOn || !('speechSynthesis' in window)) return
-      window.speechSynthesis.cancel()
-      const utterance = new SpeechSynthesisUtterance(text)
-      utterance.rate = 1.02
-      window.speechSynthesis.speak(utterance)
-    },
-    [audioOn],
-  )
+export function useCoachMode({ ply, setPly, moves, review, active, audioOn, autoAdvance, level }: Deps): CoachState {
+  const [reveal, setReveal] = useState<RevealKind | null>(null)
+  const plyRef = useRef(ply)
+  useEffect(() => {
+    plyRef.current = ply
+  }, [ply])
 
   // narrate each move while walking through the game
   useEffect(() => {
-    if (!coachMode || !review || ply === 0) return
+    if (!active || !review || ply === 0 || !audioOn || !('speechSynthesis' in window)) return
     const mr = review.moves[ply - 1]
-    if (mr) speak(mr.speech)
-  }, [coachMode, ply]) // eslint-disable-line react-hooks/exhaustive-deps
+    if (!mr) return
+    window.speechSynthesis.cancel()
+    const utterance = new SpeechSynthesisUtterance(coachText(mr, level))
+    utterance.rate = 1.02
+    const spokenAt = ply
+    utterance.onend = () => {
+      if (autoAdvance && plyRef.current === spokenAt && spokenAt < moves.length) setPly(spokenAt + 1)
+    }
+    window.speechSynthesis.speak(utterance)
+  }, [active, ply, review, audioOn, autoAdvance, level, moves.length, setPly])
 
-  const startCoach = useCallback(() => {
-    setCoachMode(true)
-    setCoachView('speech')
-    setPly(0)
-  }, [setPly])
-
-  const exitCoach = useCallback(() => {
-    setCoachMode(false)
-    setCoachView('speech')
-  }, [])
+  // stop talking when the walkthrough closes or the voice is switched off
+  useEffect(() => {
+    if ((!active || !audioOn) && 'speechSynthesis' in window) window.speechSynthesis.cancel()
+  }, [active, audioOn])
 
   const patterns = useMemo<CoachPatterns>(() => {
     if (!review || ply === 0 || ply > moves.length) return { fork: false, lost: false, mate: false }
     const before = review.positions[ply - 1]
     const after = review.positions[ply]
     const mr = review.moves[ply - 1]
+    if (!before || !after || !mr) return { fork: false, lost: false, mate: false }
     return {
-      fork: !!before.bestUci && !!findForkTargets(before.fen, before.bestUci),
+      fork: !!before.bestUci && before.bestUci !== mr.move.lan && !!findForkTargets(before.fen, before.bestUci),
       lost: !!findLostPiece(after.fen, mr.move.to, mr.move.color),
       mate: !!findMatingLine(after.lines) || !!after.mateIn,
     }
   }, [review, ply, moves.length])
 
-  const revealData = useMemo<RevealMarkers | null>(() => {
-    if (!reveal || !review || ply === 0 || ply > moves.length) return null
+  const revealData = useMemo<{ arrows: BoardArrow[]; rings: Record<string, string> }>(() => {
+    const none = { arrows: [], rings: {} }
+    if (!reveal || !review || ply === 0 || ply > moves.length) return none
     const before = review.positions[ply - 1]
     const after = review.positions[ply]
     const mr = review.moves[ply - 1]
     if (reveal === 'fork' && before.bestUci) {
       const targets = findForkTargets(before.fen, before.bestUci)
-      if (targets) {
-        const from = before.bestUci.slice(2, 4)
-        return {
-          arrows: targets.map((t) => [...uciToSquares(from + t), PALETTE.arrowReveal] as [Square, Square, string?]),
-          style: null,
-        }
-      }
+      const from = before.bestUci.slice(2, 4)
+      if (targets) return { arrows: targets.map((t) => ({ from, to: t, color: PALETTE.arrowThreat })), rings: {} }
     }
     if (reveal === 'lost') {
       const sq = findLostPiece(after.fen, mr.move.to, mr.move.color)
-      if (sq) return { arrows: [], style: { [sq]: { boxShadow: PALETTE.ringDanger } } }
+      if (sq) return { arrows: [], rings: { [sq]: PALETTE.arrowThreat } }
     }
     if (reveal === 'mate') {
       const line = findMatingLine(after.lines)
       if (line) {
         return {
-          arrows: line.pvUci.slice(0, 2).map((u) => [...uciToSquares(u), PALETTE.arrowReveal] as [Square, Square, string?]),
-          style: null,
+          arrows: line.pvUci.slice(0, 2).map((u) => ({ from: u.slice(0, 2), to: u.slice(2, 4), color: PALETTE.arrowThreat })),
+          rings: {},
         }
       }
     }
-    return null
+    return none
   }, [reveal, review, ply, moves.length])
 
   // reveal markers reset whenever the displayed position changes
@@ -113,29 +111,15 @@ export function useCoachMode({ ply, setPly, moves, review, audioOn }: Deps): Coa
     setReveal(null)
   }, [ply])
 
-  return {
-    coachMode,
-    coachView,
-    reveal,
-    revealArrows: revealData?.arrows ?? [],
-    revealStyle: revealData?.style ?? null,
-    patterns,
-    setCoachView,
-    toggleReveal: (kind) => setReveal((r) => (r === kind ? null : kind)),
-    startCoach,
-    exitCoach,
-  }
+  const toggleReveal = useCallback((kind: RevealKind) => setReveal((r) => (r === kind ? null : kind)), [])
+
+  return { reveal, revealArrows: revealData.arrows, revealRings: revealData.rings, patterns, toggleReveal }
 }
 
 export interface CoachState {
-  coachMode: boolean
-  coachView: CoachView
-  reveal: 'fork' | 'lost' | 'mate' | null
-  revealArrows: [Square, Square, string?][]
-  revealStyle: RevealMarkers['style']
+  reveal: RevealKind | null
+  revealArrows: BoardArrow[]
+  revealRings: Record<string, string>
   patterns: CoachPatterns
-  setCoachView: React.Dispatch<React.SetStateAction<CoachView>>
-  toggleReveal: (kind: 'fork' | 'lost' | 'mate') => void
-  startCoach: () => void
-  exitCoach: () => void
+  toggleReveal: (kind: RevealKind) => void
 }

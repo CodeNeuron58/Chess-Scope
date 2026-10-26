@@ -1,0 +1,160 @@
+/* Owlchess design tokens — forest palette from the Owlchess design. */
+:root {
+  --bg: #101c16;
+  --bg-deep: #0c1611;
+  --surface: #172820;
+  --surface-hover: #1b2e25;
+  --row: #1e3229;
+  --line: #263d32;
+  --line-soft: #1f342a;
+  --line-strong: #3f6b55;
+  --active: #21443a;
+  --active-strong: #2c5847;
+  --track: #263d32;
+  --track-off: #30473b;
+
+  --text: #f6efe0;
+  --text-2: #d6e0d9;
+  --text-soft: #dde6e0;
+  --text-3: #9fb3a8;
+  --muted: #7d9488;
+
+  --accent: #9fd4b2;
+  --accent-hover: #b8e2c7;
+  --accent-ink: #101c16;
+  --link-hover: #c4e8d1;
+  --arrow: #e98a6b;
+  --win: #7bd389;
+  --loss: #ff7a8a;
+  --danger: #e5534b;
+
+  --res-w-bg: #2f4a33;
+  --res-w-fg: #9fe0a8;
+  --res-l-bg: #4a2a26;
+  --res-l-fg: #ffb4a8;
+  --res-d-bg: #2a3f34;
+  --res-d-fg: #d6e0d9;
+
+  --err-blunder-bg: #3a201f;
+  --err-blunder-fg: #ff7b7d;
+  --err-mistake-bg: #3a2a1a;
+  --err-mistake-fg: #f2a65e;
+
+  --radius-card: 18px;
+  --radius-inner: 12px;
+  --shadow-pop: 0 18px 40px rgba(0, 0, 0, 0.45);
+  --shadow-board: 0 14px 40px rgba(0, 0, 0, 0.4);
+
+  --font: 'Figtree Variable', 'Figtree', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 14px;
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+a:hover {
+  color: var(--link-hover);
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--muted);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 6px;
+}
+
+@keyframes owl-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes owl-rise {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 8px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+@keyframes owl-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

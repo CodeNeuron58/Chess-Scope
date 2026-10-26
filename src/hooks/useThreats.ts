@@ -29,7 +29,7 @@ export function useThreats({ blocked, displayedFen, engineChoice, getEngine }: D
     void (async () => {
       try {
         await engine.init()
-        const res = await engine.analyse(flipped, 12, sig)
+        const res = await engine.analyse(flipped, 12, sig, { multiPv: 1 })
         if (!sig.cancelled) setThreat(res.lines[0] ?? null)
       } catch {
         if (!sig.cancelled) setThreat(null)

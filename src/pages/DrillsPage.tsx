@@ -158,7 +158,7 @@ export function DrillsPage() {
       try {
         const engine = app.getEngine(settings.engineChoice)
         await engine.init()
-        const res = await engine.analyse(after, 12, { cancelled: false })
+        const res = await engine.analyse(after, 12, { cancelled: false }, { multiPv: 1 })
         whiteCp = res.whiteCp
         mateIn = res.mateIn
       } catch {

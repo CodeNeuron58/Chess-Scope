@@ -72,13 +72,11 @@ export const ENGINE_OPTIONS: { value: EngineChoice; label: string; short: string
 
 export const DEPTH_OPTIONS: { value: number; label: string; sub: string }[] = [
   { value: 10, label: 'Fast', sub: 'Quick pass · least accurate' },
-  { value: 14, label: 'Standard', sub: 'Calibrated default' },
+  { value: 14, label: 'Standard', sub: 'Calibrated default · recommended' },
   { value: 18, label: 'Deep', sub: 'Slower · more accurate' },
-  { value: 22, label: 'Max', sub: 'Slowest · most accurate' },
+  { value: 22, label: 'Max', sub: 'Very slow in a browser · beyond the calibrated depth' },
 ]
 
-/** MultiPV line count requested from the engine. */
-export const ENGINE_MULTIPV = 3
 
 /** Search depth ceiling for the live analysis board. */
 export const LIVE_MAX_DEPTH = 30

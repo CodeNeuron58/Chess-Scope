@@ -70,7 +70,7 @@ export function ReviewPage() {
     autoAdvance: settings.autoAdvance,
     level: settings.explainLevel,
   })
-  const threats = useThreats({ blocked: rv.reviewing, displayedFen: fen, engineChoice: settings.engineChoice, getEngine: app.getEngine })
+  const threats = useThreats({ blocked: rv.reviewing || rv.refining, displayedFen: fen, engineChoice: settings.engineChoice, getEngine: app.getEngine })
 
   const go = (p: number) => {
     if (mode === 'empty' || mode === 'reviewing') return
@@ -91,6 +91,12 @@ export function ReviewPage() {
     },
     settings.keyboard,
   )
+
+  // a game is waiting to be reviewed: load the engines now so Review starts instantly
+  const { warmEngines } = app
+  useEffect(() => {
+    if (mode === 'loaded' && total > 0) warmEngines()
+  }, [mode, total, warmEngines])
 
   // keep the active move visible
   const activeRef = useRef<HTMLButtonElement>(null)
@@ -145,6 +151,8 @@ export function ReviewPage() {
   const primary =
     mode === 'reviewing'
       ? { label: 'Cancel', cls: 'btn--danger', on: rv.cancelReview }
+      : rv.refining
+        ? { label: 'Stop refining', cls: 'btn--outline', on: rv.cancelReview }
       : mode === 'report'
         ? { label: 'Re-run review', cls: '', on: () => void rv.startReview() }
         : { label: 'Review game', cls: 'btn--primary', on: () => (mode === 'empty' ? setShowLoad(true) : void rv.startReview()) }
@@ -167,7 +175,7 @@ export function ReviewPage() {
         <Popover
           width={280}
           trigger={({ toggle }) => (
-            <button type="button" className="btn btn--quiet" onClick={toggle} title="Engine and depth" disabled={rv.reviewing}>
+            <button type="button" className="btn btn--quiet" onClick={toggle} title="Engine and depth" disabled={rv.reviewing || rv.refining}>
               <span className="pro-dot" />
               {engineLabel} · depth {settings.depth}
               <Icon name="down" size={11} stroke={2.6} />
@@ -262,6 +270,12 @@ export function ReviewPage() {
             )
           }}
         </Popover>
+        {rv.refining && (
+          <span className="refine-chip" title="The report is from a quick pass; the full-depth review is still running">
+            <span className="spinner spinner--sm" />
+            Refining · {Math.round((rv.progress.done / Math.max(1, rv.progress.total)) * 100)}%
+          </span>
+        )}
         <button type="button" className={`btn ${primary.cls}`} onClick={primary.on} disabled={mode === 'loaded' && total === 0}>
           {primary.label}
         </button>
@@ -547,13 +561,14 @@ function ReportPanel({
   onAdvanced: () => void
   onDrills: () => void
 }) {
+  const { settings } = useApp()
   const evals = result.positions.map((p) => p.whiteCp)
   const classes = result.moves.map((m) => m.classification)
   const rows = CLASSIFICATION_ORDER.map((cls) => ({
     cls,
     w: result.moves.filter((m) => m.move.color === 'w' && m.classification === cls).length,
     b: result.moves.filter((m) => m.move.color === 'b' && m.classification === cls).length,
-  })).filter((r) => r.w + r.b > 0 || !['excellent', 'book'].includes(r.cls))
+  })).filter((r) => r.cls !== 'forced' && (r.w + r.b > 0 || !['excellent', 'book'].includes(r.cls)))
   const jumpTo = (cls: Classification) => {
     const next = result.moves.find((m) => m.classification === cls && m.ply > ply) ?? result.moves.find((m) => m.classification === cls)
     if (next) onJump(next.ply)
@@ -579,7 +594,9 @@ function ReportPanel({
       </div>
       <EvalGraph evals={evals} classifications={classes} sans={sans} currentPly={ply} onSelectPly={onJump} />
       <div className="report__meta">
-        Depth {result.depth} · average centipawn loss {result.acpl.white.toFixed(0)} / {result.acpl.black.toFixed(0)}
+        {result.preliminary
+          ? `Quick pass (depth ${result.depth}) · refining at depth ${settings.depth}…`
+          : `Depth ${result.depth} · average centipawn loss ${result.acpl.white.toFixed(0)} / ${result.acpl.black.toFixed(0)}`}
       </div>
       <div className="report__table">
         <div className="report__row report__row--head">

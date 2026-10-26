@@ -16,12 +16,14 @@ interface Deps {
   engineChoice: EngineChoice
   getEngine: (choice: EngineChoice) => EngineClient
   maxDepth?: number
+  /** Lines to search; only what the board shows. */
+  lines?: number
 }
 
 const IDLE: LiveAnalysis = { result: null, depth: 0, running: false, error: '' }
 
 /** Analysis-board engine: searches the shown position, deepening until maxDepth. */
-export function useLiveAnalysis({ fen, enabled, engineChoice, getEngine, maxDepth = LIVE_MAX_DEPTH }: Deps): LiveAnalysis {
+export function useLiveAnalysis({ fen, enabled, engineChoice, getEngine, maxDepth = LIVE_MAX_DEPTH, lines = 3 }: Deps): LiveAnalysis {
   const [state, setState] = useState<LiveAnalysis & { fen: string }>({ ...IDLE, fen })
 
   useEffect(() => {
@@ -37,6 +39,7 @@ export function useLiveAnalysis({ fen, enabled, engineChoice, getEngine, maxDept
         await engine.init()
         if (signal.cancelled) return
         const res = await engine.analyse(fen, maxDepth, signal, {
+          multiPv: lines,
           onUpdate: (u) => {
             if (!signal.cancelled) setState({ result: u, depth: u.depth ?? 0, running: true, error: '', fen })
           },
@@ -52,7 +55,7 @@ export function useLiveAnalysis({ fen, enabled, engineChoice, getEngine, maxDept
       signal.cancelled = true
       engine.stop(signal)
     }
-  }, [fen, enabled, engineChoice, getEngine, maxDepth])
+  }, [fen, enabled, engineChoice, getEngine, maxDepth, lines])
 
   // never show a result computed for a different position
   return state.fen === fen ? state : { ...IDLE, running: enabled }

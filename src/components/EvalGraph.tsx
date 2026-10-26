@@ -1,5 +1,6 @@
 import type { Classification } from '../types'
 import { CLASS_STYLE } from '../lib/constants'
+import { winPercent } from '../analysis/accuracy'
 import { moveLabel } from '../library/stats'
 import './evalGraph.css'
 
@@ -16,11 +17,16 @@ interface Props {
 const QUIET: Classification[] = ['best', 'excellent', 'good', 'book', 'forced']
 const W = 330
 
-/** ±10 pawn evaluation graph; notable moves are marked with their classification colour. */
+/**
+ * Winning-chances graph (White's share, an S-curve like chess.com's): small
+ * edges stay visible and decided positions flatten out. Notable moves are
+ * marked with their classification colour.
+ */
 export function EvalGraph({ evals, classifications, sans, currentPly, onSelectPly, height = 84 }: Props) {
   const n = Math.max(1, evals.length - 1)
   const x = (i: number) => (i / n) * W
-  const y = (cp: number) => 50 - Math.max(-10, Math.min(10, cp / 100)) * 4.6
+  // keep a sliver of each colour visible even in won positions
+  const y = (cp: number) => 98 - (winPercent(cp) / 100) * 96
   const pts = evals.map((cp, i) => `${x(i).toFixed(1)},${y(cp).toFixed(1)}`).join(' L')
   const area = `M0,100 L${pts} L${W},100 Z`
 

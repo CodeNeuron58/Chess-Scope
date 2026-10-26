@@ -48,8 +48,14 @@ export function AnalysisPage() {
   const whiteToMove = fen.split(' ')[1] !== 'b'
   const ended = gameEndText(fen)
 
-  const live = useLiveAnalysis({ fen, enabled: app.liveEngine && !rv.reviewing && !ended, engineChoice: settings.engineChoice, getEngine: app.getEngine })
-  const threats = useThreats({ blocked: rv.reviewing || app.liveEngine, displayedFen: fen, engineChoice: settings.engineChoice, getEngine: app.getEngine })
+  const live = useLiveAnalysis({
+    fen,
+    enabled: app.liveEngine && !rv.reviewing && !rv.refining && !ended,
+    engineChoice: settings.engineChoice,
+    getEngine: app.getEngine,
+    lines: settings.lines,
+  })
+  const threats = useThreats({ blocked: rv.reviewing || rv.refining || app.liveEngine, displayedFen: fen, engineChoice: settings.engineChoice, getEngine: app.getEngine })
   const lines = (live.result?.lines ?? []).slice(0, settings.lines)
   const top = live.result?.lines[0]
   const evalCp = top?.whiteCp ?? live.result?.whiteCp
@@ -194,7 +200,7 @@ export function AnalysisPage() {
                 <div className="engine-head">
                   <span className="engine-head__eval">{ended ? '—' : app.liveEngine && evalText ? evalText : '–'}</span>
                   <div className="engine-head__depth">
-                    <span>{ended ?? (!app.liveEngine ? 'Off' : rv.reviewing ? 'Paused during review' : live.error ? live.error : `Depth ${live.depth} of ${LIVE_MAX_DEPTH}`)}</span>
+                    <span>{ended ?? (!app.liveEngine ? 'Off' : rv.reviewing || rv.refining ? 'Paused during review' : live.error ? live.error : `Depth ${live.depth} of ${LIVE_MAX_DEPTH}`)}</span>
                     <span className="meter" style={{ flex: 'none', height: 3 }}>
                       <span className="meter__fill" style={{ width: app.liveEngine && !ended ? `${(live.depth / LIVE_MAX_DEPTH) * 100}%` : '0%' }} />
                     </span>

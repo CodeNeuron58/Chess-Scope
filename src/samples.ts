@@ -1,12 +1,17 @@
 export interface SampleGame {
   name: string
+  short: string
   pgn: string
 }
 
 export const SAMPLE_GAMES: SampleGame[] = [
   {
     name: "Morphy's Opera Game (1858)",
-    pgn: `[White "Paul Morphy"]
+    short: 'Opera Game',
+    pgn: `[Event "Paris Opera"]
+[Site "Paris FRA"]
+[Date "1858.??.??"]
+[White "Paul Morphy"]
 [Black "Duke Karl / Count Isouard"]
 [Result "1-0"]
 
@@ -16,7 +21,11 @@ export const SAMPLE_GAMES: SampleGame[] = [
   },
   {
     name: 'The Immortal Game (Anderssen–Kieseritzky, 1851)',
-    pgn: `[White "Adolf Anderssen"]
+    short: 'Immortal Game',
+    pgn: `[Event "London"]
+[Site "London ENG"]
+[Date "1851.06.21"]
+[White "Adolf Anderssen"]
 [Black "Lionel Kieseritzky"]
 [Result "1-0"]
 

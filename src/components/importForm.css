@@ -1,0 +1,97 @@
+.import {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.import__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.import--modal .import__head {
+  justify-content: flex-start;
+}
+.import__title {
+  font-weight: 600;
+  font-size: 18px;
+}
+.import__row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.import__row--stack {
+  align-items: stretch;
+}
+.import--modal .import__row {
+  flex-direction: column;
+  align-items: stretch;
+}
+.import--modal .import__row .seg {
+  align-self: flex-start;
+}
+.import__input {
+  flex: 1;
+  height: 48px;
+}
+.import__area {
+  flex: 1;
+  min-height: 0;
+}
+.import--modal .import__area {
+  min-height: 160px;
+}
+.import__go {
+  height: 48px;
+  align-self: stretch;
+}
+.import__row--stack .import__go {
+  height: auto;
+  min-height: 48px;
+}
+.import__quick {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.import__quicklink {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 0 13px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text-2);
+  font-size: 13px;
+  white-space: nowrap;
+}
+.import__quicklink svg {
+  color: var(--accent);
+}
+.import__quicklink:hover {
+  border-color: var(--line-strong);
+  color: var(--text);
+}
+.import__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.import__samples {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+  .import__row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

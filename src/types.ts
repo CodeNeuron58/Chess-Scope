@@ -50,6 +50,8 @@ export interface MoveReview {
   isBook: boolean
   /** Mover's material change in pawns (negative = sacrifice). */
   materialDelta: number
+  /** Expected points (0-1) given away versus the best move — what the classification is based on. */
+  pointsLost?: number
   secondBestWhiteCp?: number
   /** Coach commentary for the interactive review. */
   speech: string
@@ -95,6 +97,18 @@ export interface ReviewResult {
   skills: { white: PlayerSkills; black: PlayerSkills }
   /** chess.com's premium "Advanced Stats" equivalent: accuracy per position type. */
   advanced: { white: PhaseStats; black: PhaseStats }
+  /** True for the quick first pass, while the full-depth review is still running. */
+  preliminary?: boolean
+}
+
+/** Time-control bucket of a game. */
+export type Speed = 'bullet' | 'blitz' | 'rapid' | 'classical' | 'daily'
+
+/** What the review knows about the players (from PGN headers), used by the rating-aware models. */
+export interface ReviewContext {
+  whiteElo?: number
+  blackElo?: number
+  speed?: Speed
 }
 
 export interface PlayerInfo {

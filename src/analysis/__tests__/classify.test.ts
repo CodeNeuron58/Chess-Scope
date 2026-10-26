@@ -1,107 +1,148 @@
 import { describe, expect, it } from 'vitest'
 import { Chess, type Move } from 'chess.js'
 import { classifyGame } from '../classify'
-import type { PlyReview } from '../../types'
+import type { EngineLine, PlyReview } from '../../types'
 
 interface RawGame {
+  fen?: string
   sans: string[]
-  /** white-persp cp for each position (index = plies played) */
+  /** White-perspective cp for each position (index = plies played). */
   cps: number[]
-  /** engine best move (lan) for each position, index = plies played before the move */
-  best?: string[]
+  /** Engine lines for each position, index = plies played before the move. */
+  lines?: Record<number, { uci: string; cp: number; pv?: string[] }[]>
 }
 
-/** Build classifyGame inputs from a SAN sequence plus synthetic evals. */
+/** Build classifyGame inputs from a SAN sequence plus synthetic engine output. */
 function makeGame(raw: RawGame): { moves: Move[]; positions: PlyReview[] } {
-  const board = new Chess()
+  const board = new Chess(raw.fen)
   const fens: string[] = [board.fen()]
-  const moves: import("chess.js").Move[] = []
+  const moves: Move[] = []
   for (const san of raw.sans) {
     moves.push(board.move(san))
     fens.push(board.fen())
   }
-  const positions = raw.cps.map((cp, i) => ({
-    index: i,
-    fen: fens[i],
-    whiteCp: cp,
-    lines: [],
-    bestUci: raw.best?.[i] ?? '',
-  }))
+  const positions = raw.cps.map((cp, i) => {
+    const lines: EngineLine[] = (raw.lines?.[i] ?? []).map((l) => ({
+      uciFirst: l.uci,
+      pvUci: l.pv ?? [l.uci],
+      pvSan: [],
+      whiteCp: l.cp,
+    }))
+    return { index: i, fen: fens[i], whiteCp: lines[0]?.whiteCp ?? cp, lines, bestUci: lines[0]?.uciFirst ?? '' }
+  })
   return { moves, positions }
 }
 
-// out-of-book flank moves so book detection never overrides the tested class
-const FLANK = {
-  sans: ['a4', 'h5', 'g4'],
-  best: ['a2a4', 'h7h5', 'g2g4'],
-}
+// king + pawn endgames are never book, and every move has alternatives
+const KP_WHITE = '4k3/8/8/8/8/8/4P3/4K3 w - - 0 1'
+const KP_BLACK = '4k3/8/8/8/8/8/4P3/4K3 b - - 0 1'
 
-describe('classifyGame', () => {
-  it('marks a move that matches the engine best as "best"', () => {
-    const { moves, positions } = makeGame({
-      sans: FLANK.sans,
-      cps: [0, 0, 0, 0],
-      best: FLANK.best,
-    })
-    const reviews = classifyGame(moves, positions)
-    expect(reviews.map((r) => r.classification)).toEqual(['best', 'best', 'best'])
+describe('classifyGame — expected-points bands (chess.com)', () => {
+  it('marks the engine move as "best"', () => {
+    const g = makeGame({ fen: KP_WHITE, sans: ['e4'], cps: [100, 100], lines: { 0: [{ uci: 'e2e4', cp: 100 }] } })
+    expect(classifyGame(g.moves, g.positions)[0].classification).toBe('best')
   })
 
-  it('marks big win% drops as "blunder"', () => {
-    // 1. f3?? — after f3 the position is much worse for White
-    const { moves, positions } = makeGame({
-      sans: ['f3', 'e5'],
-      cps: [0, -600, -550],
-      best: ['e2e4', ''],
+  // equal position (0.50 expected points); the played move is not an engine line,
+  // so its loss comes from the evaluation after it
+  const cases: [number, string][] = [
+    [-11, 'excellent'], // loses ~0.01
+    [-38, 'good'], // ~0.035
+    [-77, 'inaccuracy'], // ~0.07
+    [-168, 'mistake'], // ~0.15
+    [-376, 'blunder'], // ~0.30
+  ]
+  for (const [cpAfter, expected] of cases) {
+    it(`a move to ${cpAfter}cp from equality is "${expected}"`, () => {
+      const g = makeGame({ fen: KP_WHITE, sans: ['Kd1'], cps: [0, cpAfter], lines: { 0: [{ uci: 'e2e4', cp: 0 }] } })
+      expect(classifyGame(g.moves, g.positions)[0].classification).toBe(expected)
     })
-    const reviews = classifyGame(moves, positions)
-    expect(reviews[0].classification).toBe('blunder')
+  }
+
+  it('reports the expected points lost on each move', () => {
+    const g = makeGame({ fen: KP_WHITE, sans: ['Kd1'], cps: [0, -168], lines: { 0: [{ uci: 'e2e4', cp: 0 }] } })
+    expect(classifyGame(g.moves, g.positions)[0].pointsLost).toBeCloseTo(0.15, 2)
   })
 
-  it('marks a small win% drop as "excellent"', () => {
-    const { moves, positions } = makeGame({
-      sans: ['a4', 'a5', 'g3'],
-      cps: [0, -5, -6, -6],
-      best: ['', '', ''],
+  it('weighs the same eval drop more heavily for stronger players', () => {
+    const g = makeGame({ fen: KP_WHITE, sans: ['Kd1'], cps: [0, -64], lines: { 0: [{ uci: 'e2e4', cp: 0 }] } })
+    const strong = classifyGame(g.moves, g.positions, { whiteElo: 2600 })[0]
+    const weak = classifyGame(g.moves, g.positions, { whiteElo: 700 })[0]
+    expect(strong.pointsLost ?? 0).toBeGreaterThan(weak.pointsLost ?? 0)
+    expect(strong.classification).toBe('inaccuracy')
+    expect(weak.classification).toBe('good')
+  })
+})
+
+describe('classifyGame — special classes', () => {
+  it('calls the only good move "great"', () => {
+    const g = makeGame({
+      fen: KP_WHITE,
+      sans: ['e4'],
+      cps: [300, 300],
+      lines: { 0: [{ uci: 'e2e4', cp: 300 }, { uci: 'e1d1', cp: -100 }] },
     })
-    const reviews = classifyGame(moves, positions)
-    expect(reviews[0].classification).toBe('excellent')
+    expect(classifyGame(g.moves, g.positions)[0].classification).toBe('great')
   })
 
-  it('marks an enormous second-best gap on the engine move as "great"', () => {
-    const { moves, positions } = makeGame({
-      sans: FLANK.sans,
-      cps: [0, 0, 900, 900],
-      best: FLANK.best,
+  it('does not call a plain recapture "great"', () => {
+    const g = makeGame({
+      fen: '4k3/8/8/3r4/8/3R4/4K3/8 b - - 0 1',
+      sans: ['Rxd3', 'Kxd3'],
+      cps: [0, -500, 0],
+      lines: { 1: [{ uci: 'e2d3', cp: 0 }, { uci: 'e2e1', cp: -500 }] },
     })
-    // fabricate a second line much worse than the best on the pre-move position
-    positions[2].lines = [
-      { uciFirst: 'g2g4', pvUci: ['g2g4'], pvSan: ['g4'], whiteCp: 900 },
-      { uciFirst: 'a2a3', pvUci: ['a2a3'], pvSan: ['a3'], whiteCp: -600 },
-    ]
-    const reviews = classifyGame(moves, positions)
-    expect(reviews[2].classification).toBe('great')
+    expect(classifyGame(g.moves, g.positions)[1].classification).toBe('best')
   })
 
-  it('marks opening book moves as "book"', () => {
-    const { moves, positions } = makeGame({
-      sans: ['e4', 'c5', 'Nf3', 'd6'],
-      cps: [30, 30, 30, 30, 30],
-      best: ['e2e4', 'c7c5', 'g1f3', 'd7d6'],
+  it('calls failing to punish the opponent’s blunder a "miss"', () => {
+    const g = makeGame({
+      fen: KP_BLACK,
+      sans: ['Kd7', 'Kd1'],
+      cps: [0, 500, 0],
+      lines: { 0: [{ uci: 'e8d8', cp: 0 }], 1: [{ uci: 'e2e4', cp: 500 }] },
     })
-    const reviews = classifyGame(moves, positions)
-    expect(reviews.map((r) => r.classification)).toEqual(['book', 'book', 'book', 'book'])
+    const r = classifyGame(g.moves, g.positions)
+    expect(r[0].classification).toBe('blunder')
+    expect(r[1].classification).toBe('miss')
   })
 
-  it('records per-move accuracy and win% for the report', () => {
-    const { moves, positions } = makeGame({
-      sans: ['e4', 'e5'],
-      cps: [0, 20, 20],
-      best: ['e2e4', ''],
+  it('calls a sound piece sacrifice "brilliant" (Greek gift)', () => {
+    const g = makeGame({
+      fen: 'rnbq1rk1/ppp1bppp/4p3/3pP3/3P4/3B1N2/PPP2PPP/RNBQ1RK1 w - - 0 8',
+      sans: ['Bxh7+'],
+      cps: [150, 150],
+      lines: { 0: [{ uci: 'd3h7', cp: 150 }], 1: [{ uci: 'g8h7', cp: 150, pv: ['g8h7', 'f3g5', 'h7g8'] }] },
     })
-    const reviews = classifyGame(moves, positions)
-    expect(reviews[0].accuracy).toBeGreaterThan(90)
-    expect(reviews[0].winBefore).toBeCloseTo(50, 5)
-    expect(reviews[0].winAfter).toBeGreaterThan(50)
+    expect(classifyGame(g.moves, g.positions)[0].classification).toBe('brilliant')
+  })
+
+  it('does not call a trade that wins the material straight back "brilliant"', () => {
+    // Bxh7+ Kxh7 Qh5+ Kg8 … but here the engine line recaptures at once
+    const g = makeGame({
+      fen: 'rnbq1rk1/ppp1bppp/4p3/3pP3/3P4/3B1N2/PPP2PPP/RNBQ1RK1 w - - 0 8',
+      sans: ['Bxh7+'],
+      cps: [150, 150],
+      lines: { 0: [{ uci: 'd3h7', cp: 150 }], 1: [{ uci: 'g8h8', cp: 150, pv: ['g8h8', 'h7d3'] }] },
+    })
+    expect(classifyGame(g.moves, g.positions)[0].classification).toBe('best')
+  })
+
+  it('marks moves on named opening lines as "book" (transpositions included)', () => {
+    const g = makeGame({ sans: ['e4', 'c5', 'Nf3', 'd6'], cps: [30, 30, 30, 30, 30] })
+    expect(classifyGame(g.moves, g.positions).map((r) => r.classification)).toEqual(['book', 'book', 'book', 'book'])
+  })
+
+  it('marks the only legal move "forced"', () => {
+    // the king is boxed in, so the pawn push is the only legal move
+    const g = makeGame({ fen: '7k/8/p5Q1/8/8/8/8/K7 b - - 0 1', sans: ['a5'], cps: [0, 0] })
+    expect(classifyGame(g.moves, g.positions)[0].classification).toBe('forced')
+  })
+
+  it('keeps the calibrated per-move accuracy and win% fields', () => {
+    const g = makeGame({ fen: KP_WHITE, sans: ['e4'], cps: [0, 20], lines: { 0: [{ uci: 'e2e4', cp: 20 }] } })
+    const r = classifyGame(g.moves, g.positions)[0]
+    expect(r.accuracy).toBeGreaterThan(90)
+    expect(r.winAfter).toBeGreaterThan(50)
   })
 })

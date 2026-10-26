@@ -1,8 +1,8 @@
-import type { Classification, PhaseStats } from '../types'
+import type { Classification, PhaseStats, Speed } from '../types'
 import type { EngineChoice } from '../engine/engineClient'
 
+export type { Speed }
 export type GameSource = 'chesscom' | 'lichess' | 'upload' | 'board'
-export type Speed = 'bullet' | 'blitz' | 'rapid' | 'classical' | 'daily'
 export type GameResult = '1-0' | '0-1' | '1/2-1/2' | '*'
 export type Color = 'w' | 'b'
 

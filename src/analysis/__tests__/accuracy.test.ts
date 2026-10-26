@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatEval, gameRating, moveAccuracy, winPercent } from '../accuracy'
+import { expectedAccuracy, expectedPoints, formatEval, gameRating, moveAccuracy, winPercent } from '../accuracy'
 
 describe('winPercent (logistic conversion)', () => {
   it('is 50 at equality', () => {
@@ -34,14 +34,37 @@ describe('moveAccuracy (calibrated exponential)', () => {
   })
 })
 
-describe('gameRating (Elo-style mapping)', () => {
-  it('maps the chess.com anchor accuracies to their observed ratings', () => {
+describe('expectedPoints (rating-aware)', () => {
+  it('is 0.5 at equality for any rating', () => {
+    expect(expectedPoints(0, 900)).toBeCloseTo(0.5, 5)
+    expect(expectedPoints(0, 2400)).toBeCloseTo(0.5, 5)
+  })
+  it('is worth more for stronger players', () => {
+    expect(expectedPoints(150, 2300)).toBeGreaterThan(expectedPoints(150, 1000))
+  })
+  it('matches the plain win% curve when the rating is unknown', () => {
+    expect(expectedPoints(200) * 100).toBeCloseTo(winPercent(200), 6)
+  })
+})
+
+describe('gameRating', () => {
+  it('without a rating maps the chess.com anchor accuracies to their observed ratings', () => {
     expect(gameRating(85.33)).toBeCloseTo(1454, -2)
     expect(gameRating(77.71)).toBeCloseTo(1201, -2)
-  })
-  it('stays within the clamp range', () => {
     expect(gameRating(0)).toBe(600)
-    expect(gameRating(100)).toBeLessThanOrEqual(2900)
+  })
+  it('with a rating reproduces chess.com on the 2026 bullet anchor (71.7 / 70.8 → 1900)', () => {
+    expect(gameRating(71.7, { elo: 2025, speed: 'bullet' })).toBe(1900)
+    expect(gameRating(70.8, { elo: 2027, speed: 'bullet' })).toBe(1900)
+  })
+  it('rises with accuracy above what is typical for the rating, in steps of 50', () => {
+    const typical = expectedAccuracy(1500, 'rapid')
+    expect(gameRating(typical, { elo: 1500, speed: 'rapid' })).toBe(1500)
+    expect(gameRating(typical + 4, { elo: 1500, speed: 'rapid' })).toBe(1700)
+    expect(gameRating(55, { elo: 1500, speed: 'rapid' }) % 50).toBe(0)
+  })
+  it('expects faster games to be less accurate', () => {
+    expect(expectedAccuracy(1800, 'bullet')).toBeLessThan(expectedAccuracy(1800, 'rapid'))
   })
 })
 

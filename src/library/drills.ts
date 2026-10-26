@@ -9,12 +9,12 @@ import { moveLabel, userColorOf } from './stats'
 import type { DrillItem, DrillTheme, StoredGame } from './types'
 
 /**
- * Max win% a drill answer may give up versus the engine's best line. Judged on
- * win% directly: the calibrated accuracy curve (LOSS_SCALE ≈ 3) would reject
- * moves only a few centipawns off — within engine noise between searches.
- * 1.5 sits between the classifier's "good" (1.2) and "inaccuracy" (2.2) bands.
+ * Max win% a drill answer may give up versus the engine's best line: anything
+ * the review would call "excellent" or better (chess.com's 0.02 expected-points
+ * band). Judged on win% directly: the calibrated accuracy curve (LOSS_SCALE ≈ 3)
+ * would reject moves only a few centipawns off — within engine noise.
  */
-export const DRILL_WIN_TOLERANCE = 1.5
+export const DRILL_WIN_TOLERANCE = 2
 
 export interface DrillCard extends DrillItem {
   opponent: string

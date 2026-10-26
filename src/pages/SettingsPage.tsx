@@ -18,6 +18,7 @@ import type { ExplainLevel, LineCount } from '../hooks/useSettings'
 import type { SyncSource } from '../hooks/useLibrary'
 import { SAMPLE_GAMES } from '../samples'
 import { timeAgo } from '../lib/format'
+import { clearEvalCache, evalCacheSize } from '../library/db'
 import { href } from '../router'
 import './settingsPage.css'
 
@@ -69,6 +70,10 @@ export function SettingsPage() {
   }, [])
 
   const reviewed = library.games.filter((g) => g.summary).length
+  const [cached, setCached] = useState<number | null>(null)
+  useEffect(() => {
+    void evalCacheSize().then(setCached)
+  }, [])
 
   const exportLibrary = () => {
     const text = library.games.map((g) => g.pgn.trim()).join('\n\n')
@@ -192,7 +197,7 @@ export function SettingsPage() {
 
           <section id="settings-review" className="card set-card">
             <div className="set-card__title">Review</div>
-            <Row title="Auto-review new games" sub="Up to 5 newly synced games are reviewed in the background.">
+            <Row title="Auto-review new games" sub="Synced games from the last two weeks are reviewed in the background, so they open instantly.">
               <Toggle on={s.autoReview} onChange={touch(s.setAutoReview)} label="Auto-review new games" />
             </Row>
             <Row title="Keyboard shortcuts" sub="← → to navigate, Home / End to jump, F to flip, X for threats.">
@@ -283,6 +288,22 @@ export function SettingsPage() {
                 </button>
               </div>
             </Row>
+            <Row
+              title="Engine cache"
+              sub={`${cached ?? '…'} analysed position${cached === 1 ? '' : 's'} saved, so re-runs and positions you reach again are instant.`}
+            >
+              <button
+                type="button"
+                className="btn btn--outline btn--sm"
+                disabled={!cached}
+                onClick={() => void clearEvalCache().then(() => {
+                  setCached(0)
+                  app.toast('Engine cache cleared')
+                })}
+              >
+                Clear cache
+              </button>
+            </Row>
           </section>
 
           <section id="settings-about" className="card set-card">
@@ -343,7 +364,7 @@ function AccountSetting({ source, label, badge }: { source: SyncSource; label: s
     }
     setName('')
     app.toast(`${label} connected · ${fresh.length} games imported`)
-    if (s.autoReview && fresh.length) app.queue.enqueue(fresh.slice(0, 5))
+    app.queueNewGames(fresh)
   }
   const synced = library.lastSync[source]
   return (

@@ -88,7 +88,7 @@ export function LibraryPage() {
   }
   const sync = () => void library.sync().then(({ fresh, error }) => {
     app.toast(error || `Synced · ${fresh.length} new game${fresh.length === 1 ? '' : 's'}`)
-    if (!error && settings.autoReview && fresh.length) queue.enqueue(fresh.slice(0, 5))
+    if (!error) app.queueNewGames(fresh)
   })
 
   const queueTotal = queue.pending.length + (queue.current ? 1 : 0)

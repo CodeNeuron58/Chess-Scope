@@ -104,7 +104,7 @@ export function ImportForm({ variant, reviewOnLoad, onDone, title }: Props) {
           return
         }
         app.toast(`${platform === 'chesscom' ? 'chess.com' : 'Lichess'} connected · ${fresh.length} new games`)
-        if (app.settings.autoReview && fresh.length) app.queue.enqueue(fresh.slice(0, 5))
+        app.queueNewGames(fresh)
         app.navigate('library')
         finish()
       }

@@ -1,0 +1,240 @@
+.drill-col {
+  gap: 10px;
+}
+.drill-choices {
+  display: flex;
+  gap: 8px;
+  max-width: 100%;
+}
+.drill-choice {
+  flex: 1;
+  min-width: 0;
+  height: 48px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  background: var(--row);
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.drill-choice:hover:not(:disabled) {
+  border-color: var(--line-strong);
+}
+.drill-choice:disabled {
+  cursor: default;
+}
+.drill-choice--ok {
+  background: #1f3a26;
+  border-color: #2f6b3d;
+  color: #9fe0a8;
+}
+.drill-choice--bad {
+  background: var(--err-blunder-bg);
+  border-color: #6b2f2b;
+  color: var(--res-l-fg);
+}
+
+.drill-themes {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 14px 24px 0;
+  justify-content: center;
+}
+.drill-theme {
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text-2);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.drill-theme span {
+  color: var(--muted);
+  margin-left: 4px;
+}
+.drill-theme:hover:not(:disabled) {
+  border-color: var(--line-strong);
+}
+.drill-theme:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.drill-theme--on {
+  background: var(--active);
+  border-color: var(--line-strong);
+  color: var(--text);
+}
+
+.drill-head {
+  padding: 0 18px;
+  gap: 12px;
+}
+.drill-dots {
+  display: flex;
+  gap: 4px;
+}
+.drill-dot {
+  width: 22px;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--line);
+}
+.drill-dot--now {
+  background: var(--accent);
+}
+.drill-dot--ok {
+  background: var(--win);
+}
+.drill-dot--bad {
+  background: var(--loss);
+}
+
+.drill-prompt {
+  padding: 20px 18px 16px;
+}
+.drill-prompt__q {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+  text-wrap: pretty;
+}
+.drill-prompt__src {
+  font-size: 13px;
+  color: var(--text-3);
+}
+.drill-feedback {
+  margin-top: 4px;
+  padding: 12px 14px;
+  border-radius: var(--radius-inner);
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.drill-feedback b {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--accent);
+}
+.drill-feedback p {
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: #e6ece8;
+}
+.drill-feedback--ok {
+  background: #1b2b1f;
+}
+.drill-feedback--ok b {
+  color: #9fe0a8;
+}
+.drill-feedback--bad {
+  background: #2a1c1a;
+}
+.drill-feedback--bad b {
+  color: var(--res-l-fg);
+}
+.drill-feedback--reveal {
+  background: var(--active);
+}
+.drill-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.drill-list {
+  padding: 12px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.drill-list__head {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 8px 8px;
+  font-size: 13px;
+}
+.drill-list__head b {
+  font-weight: 600;
+}
+.drill-list__head span {
+  color: var(--text-3);
+}
+.drill-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 8px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+}
+.drill-item:hover {
+  background: var(--row);
+}
+.drill-item--on {
+  background: var(--row);
+}
+.drill-item__ic {
+  width: 24px;
+  height: 24px;
+  flex: none;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11.5px;
+  font-weight: 800;
+  background: var(--line);
+  color: var(--text-3);
+}
+.drill-item__ic--now {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.drill-item__ic--ok {
+  background: var(--win);
+  color: var(--accent-ink);
+}
+.drill-item__ic--bad {
+  background: var(--loss);
+  color: var(--accent-ink);
+}
+.drill-item__text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.drill-item__text b {
+  font-size: 13.5px;
+  font-weight: 600;
+}
+.drill-item__text small {
+  font-size: 12px;
+  color: var(--text-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.drill-foot {
+  flex: none;
+  display: flex;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-top: 1px solid var(--line-soft);
+  font-size: 13px;
+  color: var(--text-3);
+}
+.drill-foot b {
+  color: var(--text);
+  font-weight: 600;
+}

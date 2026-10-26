@@ -43,7 +43,7 @@ describe('buildReviewedPgn', () => {
 
   it('includes headers and result', () => {
     const pgn = buildReviewedPgn([review('e4', 'best', 1)], { white: 'W', black: 'B' }, '1-0')
-    expect(pgn).toContain('[Event "ChessScope Game Review"]')
+    expect(pgn).toContain('[Event "Owlchess Game Review"]')
     expect(pgn).toContain('[White "W"]')
     expect(pgn).toContain('[Black "B"]')
     expect(pgn).toContain('[Result "1-0"]')

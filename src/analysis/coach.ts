@@ -199,11 +199,6 @@ export function coachExplain({ review, before, after, bestSan, bestLine }: Speec
   return parts.join(' ')
 }
 
-export function coachAlternative(bestSan: string | undefined): string {
-  if (!bestSan) return 'The engine had no clear preference here.'
-  return `The better move was ${bestSan}. Walk through the engine line and see how it plays out.`
-}
-
 export function funFactFor(step: number): string {
   return pick(FUN_FACTS, step)
 }

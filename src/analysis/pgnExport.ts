@@ -33,7 +33,7 @@ export function buildReviewedPgn(
   fen?: string,
 ): string {
   const headers = [
-    `[Event "ChessScope Game Review"]`,
+    `[Event "Owlchess Game Review"]`,
     `[White "${players.white}"]`,
     `[Black "${players.black}"]`,
     `[Result "${result}"]`,

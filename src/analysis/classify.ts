@@ -31,6 +31,8 @@ export function totalMaterial(fen: string): number {
   return materialFor('w', fen) + materialFor('b', fen)
 }
 
+const STANDARD_START = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w'
+
 const bookPrefixes = new Set<string>()
 for (const line of OPENING_LINES) {
   const parts = line.san.split(' ')
@@ -116,7 +118,8 @@ function normalizeUci(uci: string): string {
 
 export function classifyGame(moves: Move[], positions: PlyReview[]): MoveReview[] {
   const reviews: MoveReview[] = []
-  let bookStreak: boolean = true
+  // the opening book only applies to games from the standard start position
+  let bookStreak: boolean = !moves[0]?.before || moves[0].before.startsWith(STANDARD_START)
   for (let i = 0; i < moves.length; i++) {
     const move = moves[i]
     const before = positions[i]

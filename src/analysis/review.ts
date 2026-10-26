@@ -66,7 +66,8 @@ export interface ReplayResult {
 
 /** Replay a move list, returning every position's FEN (index i = after i plies). */
 export function replay(moves: Move[]): ReplayResult {
-  const board = new Chess()
+  // games loaded from a FEN start there; chess.js records it on every move
+  const board = new Chess(moves[0]?.before)
   const fens: string[] = [board.fen()]
   const clean: Move[] = []
   for (const m of moves) {

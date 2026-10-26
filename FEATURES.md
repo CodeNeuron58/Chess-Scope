@@ -112,12 +112,33 @@ Home · Review · Analysis · Library · Insights · Drills · Settings (hash ro
 
 ---
 
+## 2c. v3 — chess.com-aligned ratings + fast reviews (shipped, verified in browser)
+
+- [x] **Expected-points classification** (chess.com's published bands: Excellent ≤ .02, Good ≤ .05,
+      Inaccuracy ≤ .10, Mistake ≤ .20, Blunder above) on a rating-aware win curve — the old win%
+      thresholds were ~4× too strict (8/6 blunders vs chess.com's 3/1 on the reference game).
+- [x] **Great** = engine move with a ≥ .10 gap to the second line, excluding recaptures and grabbing
+      a piece the opponent just hung; **Brilliant** = a sacrifice that still holds along the engine
+      line, not in already-won positions; **Miss** = failing to punish the opponent's error;
+      **Best** also covers moves within .002 of the engine's choice; Forced hidden from the report.
+- [x] **Opening book**: Lichess chess-openings (CC0, 3,865 lines, 7,981 positions, ECO codes),
+      matched by position so transpositions count.
+- [x] **Game Rating** anchored on the players' ratings + time control when the PGN has them.
+- [x] **Winning-chances graph** (S-curve) instead of a linear ±10 pawn scale.
+- [x] **Speed**: pool of parallel single-threaded engines (measured: multi-threaded WASM is no
+      faster at fixed depth), MultiPV 2, per-position time caps, quick lite-engine first pass,
+      IndexedDB eval cache, engine pre-warm, faster skills computation. Reference 33-move game at
+      depth 14: 164 s → ~26 s; first report ~4 s; cached re-run ~1.6 s.
+- [x] Background auto-review covers synced games from the last 14 days (up to 25 per sync).
+
+---
+
 ## 3. Build SOON (v2 — differentiators)
 
-- [ ] **Eval cache (IndexedDB)**: FEN→eval store, "cached" badge, instant re-reviews.
+- [x] **Eval cache (IndexedDB)**: FEN→eval store, instant re-reviews (no badge yet).
 - [ ] **WDL bar + sharpness score**: enable `UCI_ShowWDL`, three-segment win/draw/loss bar,
       sharpness = win%+loss% (novel stat, no competitor shows it).
-- [ ] **Two-speed analysis**: "Blunder-check" mode (fast pass, flags only ?!/??: ChessBase model)
+- [~] **Two-speed analysis** (quick pass + refine shipped): "Blunder-check" mode (fast pass, flags only ?!/??: ChessBase model)
       for 30-second reviews.
 - [x] **Multi-game import + local archive**: paste/archive PGNs, store analyzed games in IndexedDB.
 - [~] **Local Insights** (shipped: accuracy over time, phases, openings, leaks, clock stats; still

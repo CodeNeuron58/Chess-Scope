@@ -29,7 +29,8 @@ src/
 │   ├── useThreats.ts · useBoardKeys.ts · useBoardSize.ts
 ├── analysis/                 # pure chess logic (no React), unit-tested
 │   ├── review.ts · accuracy.ts · classify.ts · coach.ts · skills.ts
-│   ├── openings.ts · patterns.ts · pgnExport.ts
+│   ├── openings.ts (+ openingBook.json, generated from scripts/openings/*.tsv)
+│   ├── patterns.ts · pgnExport.ts
 ├── library/                  # pure library logic (no React), unit-tested
 │   ├── types.ts              # StoredGame, ReviewSummary, DrillItem, Accounts
 │   ├── db.ts                 # IndexedDB: `games` (light records) + `reviews` (full results)
@@ -40,7 +41,8 @@ src/
 │   ├── explorer.ts           # "My games" opening explorer index
 │   └── lichess.ts            # Lichess API (user games, game export, explorer)
 ├── chesscom/api.ts           # chess.com Public API client + record conversion
-├── engine/engineClient.ts    # UCI worker client (MultiPV, live updates, stop, timeouts)
+├── engine/engineClient.ts    # UCI worker client (MultiPV per search, live updates, stop,
+│                             # time caps) + EnginePool (engines side by side for reviews)
 ├── lib/                      # constants (classification styles, themes, piece sets), chess
 │                             # utils, formatting, synthesised move sounds
 └── styles/                   # base.css (design tokens) + ui.css (shared components)
@@ -58,10 +60,13 @@ public/
 2. **The game on the board is owned by `useGameState`** — exactly one chess.js instance (ref).
    `AppProvider` tracks which library record it came from; the link holds only while the moves are
    unchanged (playing a new move starts a new, unsaved line).
-3. **One engine, shared**: `useEngine` owns the client; foreground review, live analysis, threats,
-   drill checks and the background queue all call `getEngine(choice)`. Searches are serialized in
-   the client. The queue yields (stops its current position and retries later) whenever a review
-   or the analysis board needs the engine; `stop(signal)` only ever stops the caller's own search.
+3. **One engine pool, shared**: `useEngine` owns an `EnginePool` per engine choice. Reviews and
+   the background queue use the whole pool (`getPool`), splitting a game's positions into short
+   chunks each engine pulls when free; single-position work (analysis board, threats, drill checks)
+   uses the pool's main engine (`getEngine`). Searches are serialized per engine. The quick first
+   pass runs on a separate lite pool (`getQuickPool`) that loads in under a second. The queue
+   yields whenever a review or the analysis board needs the engines; `stop(signal)` only ever
+   stops the caller's own search. Engine results are cached per position in IndexedDB.
 4. **Reviews are immutable results keyed by their moves**: `useReview` exposes a review only while
    its move list matches the board. Completed reviews are saved to the library (summary on the game
    record, full result in the `reviews` store) and restored without re-analysis when reopened.
@@ -73,10 +78,20 @@ public/
 
 ## Engine configuration
 
-The engine runs in a Web Worker (`public/engines/`) speaking UCI over `postMessage`. Three builds
-are selectable (Stockfish 19 / 19 lite / 16). Searches use MultiPV 3, capped by the number of legal
-moves; a stalled search is stopped and falls back to the deepest completed depth. The analysis
-board searches to depth 30 and reports every completed depth.
+Each engine runs in a Web Worker (`public/engines/`) speaking UCI over `postMessage`. Three
+single-threaded builds are selectable (Stockfish 19 / 19 lite / 16); the multi-threaded WASM builds
+were measured to reach a fixed depth no faster, so parallelism comes from the pool instead. Reviews
+use MultiPV 2 (capped by the number of legal moves) and a per-position time cap by depth; the
+analysis board searches as many lines as it shows, to depth 30, reporting every completed depth.
+
+## Move classification
+
+`analysis/classify.ts` follows chess.com's published expected-points bands (Excellent ≤ .02,
+Good ≤ .05, Inaccuracy ≤ .10, Mistake ≤ .20, Blunder above), with a rating-aware win curve, and
+rules for Great (only good move, not a recapture), Brilliant (a sacrifice that holds along the
+engine line), Miss (failing to punish the opponent's error) and Book (positions on the Lichess
+opening dataset, transpositions included). Accuracy keeps its own calibrated curve; Game Rating is
+anchored on the players' ratings when the PGN has them. Details and measurements: RESEARCH.md.
 
 ## Data & privacy
 

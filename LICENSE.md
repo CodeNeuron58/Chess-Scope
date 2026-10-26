@@ -49,6 +49,12 @@ keeps its own licence (see `public/pieces/LICENSES.md`, which must ship with the
 The GPL-licensed sets carry copyleft terms when distributed; the Apache 2.0 and MIT sets are
 the simplest for commercial use.
 
+## Opening book
+
+`src/analysis/openingBook.json` is generated (by `scripts/build-openings.mjs`) from the
+[Lichess chess-openings](https://github.com/lichess-org/chess-openings) dataset in
+`scripts/openings/`, released under the **CC0 Public Domain Dedication**.
+
 ## Third-party libraries
 
 - chess.js — BSD-2-Clause

@@ -209,3 +209,80 @@ Known limits:
   differently.
 - Game Rating's linear map (32.9·acc − 1356) tracks chess.com's ratings once accuracy matches
   (cc acc 59 → ~585 rating ✓ matches their ~550-600 display).
+
+## Metric design v3 (2026-10-27): matching chess.com's move ratings, and speed
+
+Reference game (user-supplied, chess.com review screenshot): naguel14 (2025) vs Srijita_24 (2027),
+1-minute bullet, 1-0, 33 moves. chess.com: accuracy 71.7 / 70.8, Game Rating 1900 / 1900,
+W/B counts — Great 0/1, Book 2/2, Best 10/8, Excellent 5/7, Good 5/4, Inaccuracy 3/5,
+Mistake 4/2, Miss 0/2, Blunder 3/1 (Forced moves are not counted in their table).
+
+v2 (win% thresholds 0.5 / 1.2 / 2.2 / 5, cp-based Great, one-ply Brilliant): Blunder 8/6,
+Mistake 6/7, Inaccuracy 1/0, Great 1/4, Brilliant 0/2, Game Rating 949/1053.
+
+Root causes and fixes:
+- **Thresholds ~4× too strict.** chess.com's support article publishes expected-points bands:
+  Best 0, Excellent ≤ .02, Good ≤ .05, Inaccuracy ≤ .10, Mistake ≤ .20, Blunder > .20. Adopted.
+- **Rating-blind curve.** chess.com's expected points depend on rating. Classification now uses
+  the lichess logistic with its slope scaled 0.6× (800) → 1.0× (2300), 1.1× cap. Accuracy keeps the
+  calibrated rating-free curve. A slope sweep on the reference game moved the error count by at
+  most 3 (9–12 across 0.8×–2.4×): residual differences are engine-evaluation differences that push
+  moves across a band edge (e.g. 15.c4 at .097), not the curve.
+- **Great** now needs the engine move, a ≥ .10 expected-points gap to the second line, a result
+  ≥ .40, not a recapture and not grabbing material the opponent just hung. **Brilliant** needs a
+  sacrifice that still holds along the engine's PV (≥ 2 points down after the reply and after our
+  next move), not in already-won positions (< .95). **Miss** = the opponent's last move handed over
+  ≥ .10 and the reply gives ≥ .10 back without ending up worse than before the gift. **Best** also
+  covers moves within .002 of the engine's choice.
+- **Book** from the Lichess chess-openings dataset (CC0), matched by position. The reference game
+  is only "book" for 1.e4 b6 there (chess.com also counts 2.Nf3 Bb7 — their book is larger).
+- **Game Rating** is not a function of accuracy alone: chess.com gave ~59.5% → ~575 between
+  beginners and ~71% → 1900 between 2025-rated bullet players. New model: player rating ± 50 Elo
+  per accuracy point versus a typical accuracy for that rating and time control, rounded to 50.
+  Provisional constants (one anchor per time control at most); accuracy-only fallback without
+  ratings. Needs more chess.com Game Ratings (not exposed by their API) to refit.
+
+v3 on the reference game (SF19 full, depth 14): Great 0/1, Best 10/11, Excellent 7/7, Good 7/3,
+Book 1/1, Inaccuracy 4/7, Mistake 1/0, Miss 1/1, Blunder 1/1; accuracy 69.9 / 71.8; Game Rating
+1850 / 1950. Per-move agreement on the decisive moments: 22.Nh4 blunder, 22…e4 miss, 24…Qxh4
+great, 31…Nxh2 blunder.
+
+### Speed (Chrome, 16-core machine, the 66-position reference game, depth 14, MultiPV 2)
+
+| Setup | Time |
+|---|---|
+| v2: one single-threaded engine, MultiPV 3, depth 14 | ~164 s |
+| one multi-threaded engine, 8 threads | 288 s (slower!) |
+| 2 engines × 2 threads | 45 s |
+| 4 engines × 2 threads | 24 s |
+| 8 engines × 1 thread | 55 s (memory contention) |
+| **4 single-threaded engines** | **20–22 s** |
+| 8 lite engines, depth 14 | 8 s |
+| 8 engines, depth 8 | 0.7 s |
+
+Lazy-SMP threads in the WASM build barely shorten a fixed-depth search (one quiet position:
+977 ms single vs 609 ms with 8 threads, at 5.5× the nodes) and did not deepen the live analysis
+either, so v3 stays single-threaded (no COOP/COEP headers needed) and runs a pool of engines
+(half the cores, max 4; 2 on ≤ 4 GB devices). Profiling showed the engine is 99% of review time;
+the skills pass was the largest non-engine cost (~2 s per pass) and now uses attack tables.
+End to end in the app: first report ~4 s (quick pass on lite engines that load instantly), full
+review ~26 s, cached re-run ~1.6 s (IndexedDB eval cache).
+
+### Accuracy recalibration (2026-10-27)
+
+Calibration set: the 32 games in Srijita_24's chess.com archive (Sept–Oct 2026) that carry
+chess.com's official `accuracies` (20 blitz, 12 bullet → 64 player-sides), reviewed headlessly with
+Stockfish 19 Full, depth 14, MultiPV 2 (~29 s per 68-ply game with the engine pool).
+
+| Model | Fitted k | RMSE | Bias |
+|---|---|---|---|
+| shipped, arithmetic mean, k = 3.04 (6-side fit) | — | 5.90 | −2.18 |
+| arithmetic mean, refit | 2.64 | 5.56 | −0.30 |
+| arithmetic mean, skip book + forced | 2.36 | 5.81 | −0.21 |
+| (mean + harmonic) / 2 (lichess-style) | 1.00 | 11.45 | +2.04 |
+
+Leave-one-game-out RMSE: refit 5.66 vs 3.04's 5.90. Per time control the best k differs (blitz
+2.46, bullet 2.94), and fitting on one predicts the other worse than either own fit — a hint that
+chess.com's accuracy depends on time control or rating, but 12 bullet games are too few to split.
+Shipped: k = 2.64. 27 of 64 sides land within ±3 of chess.com, 40 within ±5; the worst outliers
+(−14 / +12) are short games where a single eval disagreement dominates the average.

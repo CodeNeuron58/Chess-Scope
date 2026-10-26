@@ -30,7 +30,10 @@ npm run lint       # oxlint
 
 ## Engines
 
-Stockfish runs locally as WebAssembly (GPLv3):
+Stockfish runs locally as WebAssembly (GPLv3). Reviews run several engines side by side (half
+your CPU cores, up to four), show a quick report from the lite engine within a few seconds, then
+refine it at full depth; every analysed position is cached, so re-runs are near-instant.
+A 33-move game reviews at depth 14 in roughly 25–30 seconds on an 8+ core machine.
 
 | Engine | Download | Best for |
 |---|---|---|
@@ -59,4 +62,6 @@ Stockfish runs locally as WebAssembly (GPLv3):
 
 Built with React, Vite and TypeScript, chess.js for rules, react-chessboard for the board and the
 `stockfish` npm WebAssembly builds. Piece sets come from lichess-org/lila under their own licences
-(see `public/pieces/LICENSES.md`). Not affiliated with chess.com or Lichess.
+(see `public/pieces/LICENSES.md`); opening names and book moves come from the CC0 Lichess
+chess-openings dataset (rebuild with `node scripts/build-openings.mjs`). Not affiliated with
+chess.com or Lichess.

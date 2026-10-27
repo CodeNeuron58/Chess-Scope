@@ -117,6 +117,19 @@ describe('classifyGame — special classes', () => {
     expect(classifyGame(g.moves, g.positions)[0].classification).toBe('brilliant')
   })
 
+  it('calls a queen sacrifice that forces mate "brilliant" even when already winning (Opera Game 16.Qb8+)', () => {
+    const opera = new Chess()
+    for (const san of 'e4 e5 Nf3 d6 d4 Bg4 dxe5 Bxf3 Qxf3 dxe5 Bc4 Nf6 Qb3 Qe7 Nc3 c6 Bg5 b5 Nxb5 cxb5 Bxb5+ Nbd7 O-O-O Rd8 Rxd7 Rxd7 Rd1 Qe6 Bxd7+ Nxd7'.split(' ')) opera.move(san)
+    const g = makeGame({
+      fen: opera.fen(),
+      sans: ['Qb8+'],
+      cps: [19800, 19900],
+      lines: { 0: [{ uci: 'b3b8', cp: 19800 }], 1: [{ uci: 'd7b8', cp: 19900, pv: ['d7b8', 'd1d8'] }] },
+    })
+    g.positions[1].mateIn = 1
+    expect(classifyGame(g.moves, g.positions)[0].classification).toBe('brilliant')
+  })
+
   it('does not call a trade that wins the material straight back "brilliant"', () => {
     // Bxh7+ Kxh7 Qh5+ Kg8 … but here the engine line recaptures at once
     const g = makeGame({

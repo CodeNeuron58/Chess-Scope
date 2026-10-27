@@ -83,6 +83,12 @@ function isSacrifice(move: Move, before: PlyReview, after: PlyReview): boolean {
   return afterRecapture === undefined || afterRecapture <= start - 2
 }
 
+/** The position after the move is a forced mate for the mover. */
+function matesFor(after: PlyReview, mover: 'w' | 'b'): boolean {
+  const mate = after.mateIn ?? after.lines[0]?.mateIn
+  return mate !== undefined && (mover === 'w' ? mate > 0 : mate < 0)
+}
+
 interface MoveContext {
   move: Move
   prev?: Move
@@ -133,7 +139,14 @@ function classifyOne(c: MoveContext): Omit<MoveReview, 'ply' | 'move' | 'isBook'
     classification = 'forced'
   } else if (c.book) {
     classification = 'book'
-  } else if (isBest && loss <= EP_BANDS.excellent && bestEP < 0.95 && resultEP >= 0.5 && isSacrifice(move, before, after)) {
+  } else if (
+    isBest &&
+    loss <= EP_BANDS.excellent &&
+    // in an already-won position a sacrifice is only brilliant if it forces mate (Morphy's 16.Qb8+)
+    (bestEP < 0.95 || matesFor(after, mover)) &&
+    resultEP >= 0.5 &&
+    isSacrifice(move, before, after)
+  ) {
     classification = 'brilliant'
   } else if (
     isTop &&

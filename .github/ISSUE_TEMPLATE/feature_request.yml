@@ -1,0 +1,26 @@
+name: Feature request
+description: Something you'd like Owlchess to do
+labels: [enhancement]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like?
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why would it help your chess?
+      description: The problem behind the idea helps us build the right thing.
+  - type: dropdown
+    id: where
+    attributes:
+      label: Which part of the app?
+      options:
+        - Game review
+        - Analysis board
+        - Library / sync
+        - Insights
+        - Drills
+        - Something new

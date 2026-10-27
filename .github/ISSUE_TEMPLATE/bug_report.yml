@@ -1,0 +1,40 @@
+name: Bug report
+description: Something in Owlchess broke or looks wrong
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you expect, and what did you see instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: How can we reproduce it?
+      placeholder: "1. Imported my chess.com games\n2. Opened a game and pressed Review\n3. …"
+  - type: textarea
+    id: game
+    attributes:
+      label: Game (optional)
+      description: A game link or PGN helps a lot with review and rating issues.
+      render: text
+  - type: dropdown
+    id: device
+    attributes:
+      label: Device
+      options:
+        - Desktop / laptop
+        - Phone
+        - Tablet
+  - type: input
+    id: browser
+    attributes:
+      label: Browser
+      placeholder: Chrome 130, Firefox 132, Safari 18…
+  - type: input
+    id: version
+    attributes:
+      label: Owlchess version
+      description: Settings → About shows it.

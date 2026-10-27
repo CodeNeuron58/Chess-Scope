@@ -1,8 +1,15 @@
-# Publishes the app to GitHub Pages. Run it from the Actions tab ("Run workflow")
-# after enabling Pages: repository Settings → Pages → Source: GitHub Actions.
+# Publishes the app to GitHub Pages on every push to main (docs-only pushes are
+# skipped) or from the Actions tab ("Run workflow"). Needs Pages enabled:
+# repository Settings → Pages → Source: GitHub Actions.
 name: Deploy to GitHub Pages
 
 on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.github/ISSUE_TEMPLATE/**'
   workflow_dispatch:
 
 permissions:

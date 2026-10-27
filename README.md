@@ -31,9 +31,9 @@ npm run lint       # oxlint
 ### Deploy (GitHub Pages)
 
 The app is a static site. `.github/workflows/deploy.yml` tests, builds with
-`BASE_PATH=/<repo>/` and publishes `dist/` to GitHub Pages; run it from the Actions tab
-(**Deploy to GitHub Pages → Run workflow**) after setting **Settings → Pages → Source** to
-**GitHub Actions**. Any static host works: build with `BASE_PATH` set to the sub-path the site is
+`BASE_PATH=/<repo>/` and publishes `dist/` to GitHub Pages on every push to `main` (pushes that
+only touch Markdown or `docs/` are skipped); it can also be run by hand from the Actions tab.
+**Settings → Pages → Source** must be set to **GitHub Actions**. Any static host works: build with `BASE_PATH` set to the sub-path the site is
 served from (default `/`) and upload `dist/`. The host must allow files of ~100 MB (the full
 engine); Cloudflare Pages, for example, caps files at 25 MiB.
 

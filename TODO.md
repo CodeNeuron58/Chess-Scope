@@ -13,8 +13,8 @@ Legend: **[R]** needed before the first public release · **[N]** next · **[L]*
 
 - [x] **[R] Pick a host for a static site.** GitHub Pages (100 MB per file, ~100 GB/month soft
       bandwidth ≈ 1,000 first-time full-engine downloads). `deploy.yml` builds with
-      `BASE_PATH=/<repo>/` and publishes on manual run. **Owner:** set Settings → Pages → Source
-      to "GitHub Actions", then run the workflow.
+      `BASE_PATH=/<repo>/` and publishes on every push to `main` (docs-only pushes skipped).
+      Live at https://codeneuron58.github.io/Owlchess/.
 - [ ] **[R] Decide the first-visit engine.** Every new visitor downloads 99 MB for the full
       engine. Options: default to Stockfish 19 lite and offer "full strength" in Settings, or keep
       full (accuracy is calibrated for it) and show a one-time download notice.

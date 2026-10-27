@@ -57,11 +57,27 @@ describe('gameRating', () => {
     expect(gameRating(71.7, { elo: 2025, speed: 'bullet' })).toBe(1900)
     expect(gameRating(70.8, { elo: 2027, speed: 'bullet' })).toBe(1900)
   })
-  it('rises with accuracy above what is typical for the rating, in steps of 50', () => {
+  it('rises 35 Elo per accuracy point above what is typical for the rating, in steps of 50', () => {
     const typical = expectedAccuracy(1500, 'rapid')
     expect(gameRating(typical, { elo: 1500, speed: 'rapid' })).toBe(1500)
-    expect(gameRating(typical + 4, { elo: 1500, speed: 'rapid' })).toBe(1700)
+    expect(gameRating(typical + 10, { elo: 1500, speed: 'rapid' })).toBe(1850)
     expect(gameRating(55, { elo: 1500, speed: 'rapid' }) % 50).toBe(0)
+  })
+  it('does not sink ~900-rated players far below chess.com (946, 12 points under typical → 550, was 350)', () => {
+    const acc = expectedAccuracy(946, 'rapid') - 11.3
+    expect(gameRating(acc, { elo: 946, speed: 'rapid' })).toBe(550)
+  })
+  it('uses typical accuracies measured from chess.com games', () => {
+    expect(expectedAccuracy(900, 'blitz')).toBe(70.5)
+    expect(expectedAccuracy(2100, 'rapid')).toBe(83)
+    expect(expectedAccuracy(300, 'rapid')).toBe(60)
+    expect(expectedAccuracy(100, 'rapid')).toBe(60)
+    expect(expectedAccuracy(3200, 'blitz')).toBe(82.5)
+  })
+  it('never expects a stronger player to be less accurate', () => {
+    for (const speed of ['bullet', 'blitz', 'rapid', 'classical', 'daily'] as const) {
+      for (let r = 100; r < 3000; r += 50) expect(expectedAccuracy(r + 50, speed)).toBeGreaterThanOrEqual(expectedAccuracy(r, speed))
+    }
   })
   it('expects faster games to be less accurate', () => {
     expect(expectedAccuracy(1800, 'bullet')).toBeLessThan(expectedAccuracy(1800, 'rapid'))

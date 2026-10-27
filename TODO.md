@@ -63,9 +63,12 @@ Legend: **[R]** needed before the first public release · **[N]** next · **[L]*
 - [ ] **[N] Move the calibration tooling into the repo** (`scripts/calibrate/`): fetch a chess.com
       archive, review games headlessly, refit `LOSS_SCALE`, print RMSE/bias. Lets anyone re-run
       the fit as data grows.
-- [ ] **[N] Fit Game Rating properly**: collect 5–10 chess.com Game Ratings (screenshots; not in
-      their API) across blitz / bullet / rapid and refit `EXPECTED_ACC_AT_1500`,
-      `ACC_PER_100_ELO`, `ELO_PER_ACC_POINT` in `src/analysis/accuracy.ts`.
+- [x] **[N] Fit Game Rating properly**: typical accuracy per rating and time control is now
+      measured from 9,032 chess.com player-sides, at 35 Elo per accuracy point (was a guessed
+      line at 50, which read a ~930-rated game as 100 / 300 against chess.com's 350 / 550).
+- [ ] **[N] Check Game Rating on more games**: collect 5–10 chess.com Game Ratings (screenshots;
+      not in their API) across bullet / blitz / rapid and confirm the 35 Elo per point step, or
+      refit `ELO_PER_ACC_POINT` in `src/analysis/accuracy.ts`.
 - [ ] **[N] Tune move labels on more games**: compare the classification table against chess.com
       screenshots for several games (only one game compared so far); adjust the Great / Miss /
       Brilliant thresholds in `src/analysis/classify.ts` if they drift.

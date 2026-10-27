@@ -89,29 +89,54 @@ export const CLASSIFICATION_ORDER: Classification[] = [
 ]
 
 /**
- * Typical accuracy for a rating and time control. Faster games are less accurate
- * at every level; ~0.6 accuracy points per 100 Elo. Provisional constants,
- * anchored on a 2026-rated bullet game chess.com scored 71.7 / 70.8 → 1900 / 1900
- * (see RESEARCH.md) — refit as more chess.com Game Ratings are collected.
+ * Typical chess.com accuracy by rating and time control: the mean of chess.com's
+ * own accuracies over 9,032 player-sides of rated, reviewed games (public API,
+ * random and titled players, Oct 2026), made non-decreasing in rating. Bands with
+ * under 40 games were dropped; ratings between knots are interpolated, and
+ * ratings beyond the ends use the end value. See RESEARCH.md.
  */
-const EXPECTED_ACC_AT_1500: Record<Speed, number> = { bullet: 70.6, blitz: 73, rapid: 75.5, classical: 77.5, daily: 78.5 }
-const ACC_PER_100_ELO = 0.6
-/** Elo gained per accuracy point above what is typical for the player. */
-const ELO_PER_ACC_POINT = 50
+const TYPICAL_ACC: Record<'bullet' | 'blitz' | 'rapid', [rating: number, accuracy: number][]> = {
+  bullet: [[300, 63], [500, 65], [700, 69], [900, 71], [1900, 74], [2100, 75], [2300, 75], [2500, 79], [2700, 79]],
+  blitz: [[300, 62], [500, 65.5], [700, 69], [900, 70.5], [1100, 73.5], [1300, 74.5], [1500, 76], [1900, 79.5], [2100, 79.5], [2300, 80], [2500, 82.5], [2700, 82.5]],
+  rapid: [[300, 60], [500, 65], [700, 67], [900, 71], [1100, 73], [2100, 83], [2300, 84], [2500, 86.5]],
+}
+/** Daily games read ~3.5 points above rapid (small sample); classical uses rapid. */
+const DAILY_OVER_RAPID = 3.5
+/**
+ * Elo per accuracy point above or below typical. Fits chess.com's 1900 / 1900 for
+ * a 2025 / 2027-rated bullet game at 71.7 / 70.8, and the ~33 Elo per point gap
+ * between two players of one game (85.3 → 1450, 77.7 → 1200).
+ */
+const ELO_PER_ACC_POINT = 35
+
+function interpolate(knots: [number, number][], x: number): number {
+  if (x <= knots[0][0]) return knots[0][1]
+  for (let i = 1; i < knots.length; i++) {
+    const [x1, y1] = knots[i]
+    if (x <= x1) {
+      const [x0, y0] = knots[i - 1]
+      return y0 + ((y1 - y0) * (x - x0)) / (x1 - x0)
+    }
+  }
+  return knots[knots.length - 1][1]
+}
 
 export function expectedAccuracy(elo: number, speed: Speed = 'blitz'): number {
-  return EXPECTED_ACC_AT_1500[speed] + (ACC_PER_100_ELO * (elo - 1500)) / 100
+  if (speed === 'bullet' || speed === 'blitz') return interpolate(TYPICAL_ACC[speed], elo)
+  return interpolate(TYPICAL_ACC.rapid, elo) + (speed === 'daily' ? DAILY_OVER_RAPID : 0)
 }
 
 /**
  * Game Rating: an Elo-style estimate of how well someone played this game.
  *
- * chess.com's Game Rating is anchored on the players' ratings, not accuracy
- * alone: ~71% accuracy reads 1900 between 2025-rated bullet players, while
- * ~59.5% reads ~575 between beginners. With a known rating we start from it and
- * move ±50 Elo per accuracy point versus what is typical for that rating and
- * time control, rounded to 50 like chess.com. Without a rating (plain PGN), it
- * falls back to the accuracy-only fit (acc 85.33 → ~1450, 77.71 → ~1200).
+ * chess.com: "comparing the quality of your moves to what is expected from a
+ * player at your rating level", averaging out to the player's rating over time.
+ * So with a known rating we start from it and move ±35 Elo per accuracy point
+ * versus the typical accuracy at that rating and time control, rounded to 50
+ * like chess.com. Measured against the typical accuracies above, the average
+ * comes out within ~15 Elo of the players' ratings in every band. Without a
+ * rating (plain PGN), it falls back to the accuracy-only fit (85.33 → ~1450,
+ * 77.71 → ~1200).
  */
 export function gameRating(accuracy: number, ctx: { elo?: number; speed?: Speed } = {}): number {
   if (ctx.elo && Number.isFinite(ctx.elo) && ctx.elo > 0) {

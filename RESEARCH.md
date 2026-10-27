@@ -286,3 +286,40 @@ Leave-one-game-out RMSE: refit 5.66 vs 3.04's 5.90. Per time control the best k 
 chess.com's accuracy depends on time control or rating, but 12 bullet games are too few to split.
 Shipped: k = 2.64. 27 of 64 sides land within ±3 of chess.com, 40 within ±5; the worst outliers
 (−14 / +12) are short games where a single eval disagreement dominates the average.
+
+## Game Rating v4 (2026-10-28): typical accuracy measured, 35 Elo per point
+
+Report: a game between 922- and 946-rated players read 100 / 300 in Owlchess and 350 / 550 on
+chess.com, with accuracies close to chess.com's. chess.com's help article ("How is Game Rating
+calculated?") gives no formula, only the principle: compare move quality "to what is expected from
+a player at your rating level", averaging out to the player's rating over time.
+
+Data: chess.com's own `accuracies` from the public archive API — 9,032 player-sides of rated,
+reviewed games (≥ 10 moves) from 250 random players (country lists) plus Srijita_24's archive and
+25 titled players each of NM / CM / WFM / WCM / FM / WIM / IM. Mean accuracy by 200-Elo band:
+
+| Rating | Bullet | Blitz | Rapid | old model (rapid) |
+|---|---|---|---|---|
+| 300 | 63.2 | 62.2 | 59.9 | 68.3 |
+| 900 | 71.0 | 70.6 | 71.0 | 71.9 |
+| 1300 | — | 74.7 | — | 74.3 |
+| 2100 | 75.3 | 79.4 | 83.2 | 79.1 |
+| 2500 | 79.0 | 82.5 | 86.4 | 81.5 |
+
+Findings:
+- Near 900 the old typical accuracy was already about right, so the 250-Elo gap came from the step
+  size: 50 Elo per accuracy point against chess.com's ~31–35 (their gaps from the players' ratings
+  are 0.6–0.7× ours on the reported game). Two players of one game, 85.3 → 1450 and 77.7 → 1200,
+  give ~33 per point independently of the rating curve.
+- The old straight line (0.6 per 100 Elo) was 8 points too high for beginners and 3–4 too low
+  above 2000; real accuracy climbs ~1–1.5 per 100 Elo below 1100 and flattens above.
+
+Model: typical accuracy = per-time-control knots (band means, made non-decreasing with weighted
+isotonic regression, bands under 40 games dropped, linear in between); daily = rapid + 3.5 (140
+sides only); classical = rapid. Game Rating = rating + 35 × (accuracy − typical), rounded to 50,
+clamped 100–3000. Checks: the 2025 / 2027 bullet game at 71.7 / 70.8 → 1900 / 1900 (chess.com
+1900 / 1900; 33 gives 1950 / 1900, 40 gives 1900 / 1850); mean Game Rating per 400-Elo band
+lands within ~15 Elo of the band's mean rating for bullet, blitz and rapid. Home / Insights now
+average each game's Game Rating (with that game's rating and time control) instead of mapping the
+average accuracy alone, and the Review page recomputes it from accuracy so stored reviews update.
+

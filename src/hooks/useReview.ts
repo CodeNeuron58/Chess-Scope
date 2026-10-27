@@ -4,6 +4,7 @@ import type { EngineChoice } from '../engine/engineClient'
 import type { EngineClient } from '../engine/engineClient'
 import { asPreliminary, reviewGame } from '../analysis/review'
 import { evalCache } from '../library/db'
+import { engineDownloadedBefore } from '../engine/download'
 
 /** Depth of the quick first pass; the report shows after it while the full pass refines. */
 export const QUICK_DEPTH = 8
@@ -91,8 +92,12 @@ export function useReview(deps: Deps): ReviewState {
       onProgress: (done: number, total: number) => setProgress({ done, total }),
     }
     try {
-      // the full engines start loading now and join the refine pass when ready
-      for (const e of engines) void e.init().catch(() => undefined)
+      // The full engines start loading now and join the refine pass when ready. On a first
+      // visit their ~99 MB download would saturate the connection and hold up the lite
+      // engine's files, so it waits for the quick report (the refine pass starts it).
+      if (quickEngines === engines || engineDownloadedBefore(engineChoice)) {
+        for (const e of engines) void e.init().catch(() => undefined)
+      }
       await quickEngines[0].init()
       if (signal.cancelled) return
       setLoadingEngine(false)

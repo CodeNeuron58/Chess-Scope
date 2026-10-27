@@ -62,10 +62,13 @@ A 33-move game reviews at depth 14 in roughly 25–30 seconds on an 8+ core mach
 | Stockfish 19 lite | 1.7 MB | Instant load, slightly weaker |
 | Stockfish 16 | 40 MB | Previous generation |
 
-The engine downloads once on first use (with a progress indicator) and is then served from the
-browser cache. Engine sources: [Stockfish](https://github.com/official-stockfish/Stockfish) and
-the [stockfish.js](https://github.com/nmrugg/stockfish.js) WebAssembly port; the GPLv3 text ships
-as `engines/STOCKFISH-COPYING.txt` and is linked from Settings → About.
+The engine downloads once on first use (with a progress indicator) and is stored in the browser's
+Cache Storage; the HTTP cache can't hold a 99 MB file. On a first visit the quick report comes from
+the lite engine before the full download starts.
+
+Engine sources: [Stockfish](https://github.com/official-stockfish/Stockfish) and the
+[stockfish.js](https://github.com/nmrugg/stockfish.js) WebAssembly port; the GPLv3 text ships as
+`engines/STOCKFISH-COPYING.txt` and is linked from Settings → About.
 
 ## Accounts and network use
 

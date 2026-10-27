@@ -11,6 +11,7 @@ import type { ReviewResult } from '../types'
 import { playMoveSound, soundFor } from '../lib/sound'
 import { AppContext, type AppState, type OpenOptions, type ReviewTab } from './context'
 import { Toast } from '../components/Toast'
+import { engineDownloadedBefore } from '../engine/download'
 
 /** Newly synced games played within this window are reviewed in the background… */
 const AUTO_REVIEW_DAYS = 14
@@ -197,8 +198,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [currentGame, game, names, library, boardKey])
 
   const warmEngines = useCallback(() => {
-    for (const e of getPool(settings.engineChoice)) void e.init().catch(() => undefined)
-  }, [getPool, settings.engineChoice])
+    const choice = settings.engineChoice
+    // a first visit loads only the small engine the quick report needs (see useReview)
+    const pools = engineDownloadedBefore(choice) ? [getPool(choice), getQuickPool(choice)] : [getQuickPool(choice)]
+    for (const e of pools.flat()) void e.init().catch(() => undefined)
+  }, [getPool, getQuickPool, settings.engineChoice])
 
   // background-review freshly synced games so they open instantly
   const libraryRef = useRef(library)

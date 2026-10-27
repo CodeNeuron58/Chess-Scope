@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Move, ReviewContext, ReviewResult } from '../types'
 import type { EngineChoice } from '../engine/engineClient'
 import type { EngineClient } from '../engine/engineClient'
-import { reviewGame } from '../analysis/review'
+import { asPreliminary, reviewGame } from '../analysis/review'
 import { evalCache } from '../library/db'
 
 /** Depth of the quick first pass; the report shows after it while the full pass refines. */
@@ -99,7 +99,7 @@ export function useReview(deps: Deps): ReviewState {
       if (depth > QUICK_DEPTH) {
         const quick = await reviewGame(moves, quickEngines, { ...base, cacheTag: quickEngines[0].choice, depth: QUICK_DEPTH })
         if (signal.cancelled) return
-        setStored({ key: reviewKey, result: { ...quick, preliminary: true } })
+        setStored({ key: reviewKey, result: asPreliminary(quick) })
         setReviewing(false)
         setRefining(true)
         setProgress({ done: 0, total: moves.length + 1 })
@@ -111,7 +111,7 @@ export function useReview(deps: Deps): ReviewState {
       if (activeKey.current === reviewKey) onCompleteRef.current?.(result)
     } catch (e) {
       if (!signal.cancelled) {
-        setEngineStatus(`Engine error: ${e instanceof Error ? e.message : String(e)}`)
+        setEngineStatus(e instanceof Error ? e.message : String(e))
       }
     } finally {
       // a newer run owns the state once it has started

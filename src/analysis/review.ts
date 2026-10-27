@@ -215,3 +215,20 @@ function countClassifications(moves: MoveReview[], color: 'w' | 'b') {
   }
   return out
 }
+
+/**
+ * A quick shallow pass is good enough for accuracy and errors, but Brilliant and
+ * Great depend on precise evaluations and flip-flop at low depth — show them as
+ * Best until the full-depth pass confirms them.
+ */
+export function asPreliminary(result: ReviewResult): ReviewResult {
+  const moves = result.moves.map((m) =>
+    m.classification === 'brilliant' || m.classification === 'great' ? { ...m, classification: 'best' as const } : m,
+  )
+  return {
+    ...result,
+    moves,
+    counts: { white: countClassifications(moves, 'w'), black: countClassifications(moves, 'b') },
+    preliminary: true,
+  }
+}

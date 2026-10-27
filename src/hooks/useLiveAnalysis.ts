@@ -18,12 +18,14 @@ interface Deps {
   maxDepth?: number
   /** Lines to search; only what the board shows. */
   lines?: number
+  /** Bump to retry after an engine error. */
+  attempt?: number
 }
 
 const IDLE: LiveAnalysis = { result: null, depth: 0, running: false, error: '' }
 
 /** Analysis-board engine: searches the shown position, deepening until maxDepth. */
-export function useLiveAnalysis({ fen, enabled, engineChoice, getEngine, maxDepth = LIVE_MAX_DEPTH, lines = 3 }: Deps): LiveAnalysis {
+export function useLiveAnalysis({ fen, enabled, engineChoice, getEngine, maxDepth = LIVE_MAX_DEPTH, lines = 3, attempt = 0 }: Deps): LiveAnalysis {
   const [state, setState] = useState<LiveAnalysis & { fen: string }>({ ...IDLE, fen })
 
   useEffect(() => {
@@ -55,7 +57,8 @@ export function useLiveAnalysis({ fen, enabled, engineChoice, getEngine, maxDept
       signal.cancelled = true
       engine.stop(signal)
     }
-  }, [fen, enabled, engineChoice, getEngine, maxDepth, lines])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fen, enabled, engineChoice, getEngine, maxDepth, lines, attempt])
 
   // never show a result computed for a different position
   return state.fen === fen ? state : { ...IDLE, running: enabled }

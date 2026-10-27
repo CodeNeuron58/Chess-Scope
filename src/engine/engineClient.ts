@@ -1,5 +1,9 @@
 import { Chess } from 'chess.js'
 import type { EngineLine, PlyReview } from '../types'
+import { engineAssetUrl, ensureEngineDownloaded } from './download'
+
+/** How long the UCI handshake may take once the engine files are downloaded (WASM compile included). */
+const HANDSHAKE_TIMEOUT_MS = 60_000
 
 export interface PositionEval {
   whiteCp: number
@@ -169,6 +173,7 @@ export function poolSize(): number {
 export class EngineClient {
   private worker: Worker | null = null
   private initResolve: (() => void) | null = null
+  private initReject: ((err: Error) => void) | null = null
   private searchResolve: ((outcome: SearchOutcome) => void) | null = null
   private searchReject: ((err: Error) => void) | null = null
   private byDepth = new Map<number, Map<number, RawLine>>()
@@ -185,17 +190,28 @@ export class EngineClient {
 
   private ensureWorker(): Worker {
     if (this.worker) return this.worker
-    const w = new Worker(`${import.meta.env.BASE_URL}engines/${ENGINE_FILES[this.choice]}`)
+    const w = new Worker(engineAssetUrl(ENGINE_FILES[this.choice]))
     this.worker = w
     w.onmessage = (e: MessageEvent<string>) => this.onMessage(String(e.data))
     w.onerror = (e) => {
-      const err = new Error(`Engine worker error: ${e.message || 'unknown'}`)
-      this.searchReject?.(err)
-      this.searchReject = null
-      this.initResolve?.()
-      this.initResolve = null
+      e.preventDefault()
+      this.fail(new Error(`The engine stopped working${e.message ? ` (${e.message})` : ''}. Try again or pick another engine in Settings.`))
     }
     return w
+  }
+
+  /** A broken worker: reject whoever is waiting and start fresh next time. */
+  private fail(err: Error) {
+    this.searchReject?.(err)
+    this.searchReject = null
+    this.searchResolve = null
+    this.initReject?.(err)
+    this.initReject = null
+    this.initResolve = null
+    this.worker?.terminate()
+    this.worker = null
+    this.ready = null
+    this.multiPV = 0
   }
 
   private onMessage(text: string) {
@@ -231,6 +247,7 @@ export class EngineClient {
     if (text === 'uciok' || text === 'readyok') {
       this.initResolve?.()
       this.initResolve = null
+      this.initReject = null
     }
   }
 
@@ -253,20 +270,33 @@ export class EngineClient {
     return this.ready
   }
 
-  private async handshake(): Promise<void> {
-    const w = this.ensureWorker()
-    const done = new Promise<void>((resolve) => {
-      this.initResolve = resolve
+  /** Resolves on the next uciok/readyok; rejects on a worker error or after a timeout. */
+  private waitForReply(what: string): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(() => this.fail(new Error(`The engine did not start (no ${what} after ${HANDSHAKE_TIMEOUT_MS / 1000} s).`)), HANDSHAKE_TIMEOUT_MS)
+      this.initResolve = () => {
+        clearTimeout(timer)
+        resolve()
+      }
+      this.initReject = (err) => {
+        clearTimeout(timer)
+        reject(err)
+      }
     })
+  }
+
+  private async handshake(): Promise<void> {
+    // one shared, progress-reporting download per engine kind (pool members reuse it)
+    await ensureEngineDownloaded(this.choice)
+    const w = this.ensureWorker()
+    const done = this.waitForReply('uciok')
     w.postMessage('uci')
     await done
     w.postMessage(`setoption name Hash value ${this.hashMb}`)
     // SF16 needs NNUE enabled explicitly; SF19 removed the option (NNUE-only).
     if (this.choice === 'sf16') w.postMessage('setoption name Use NNUE value true')
+    const ready = this.waitForReply('readyok')
     w.postMessage('isready')
-    const ready = new Promise<void>((resolve) => {
-      this.initResolve = resolve
-    })
     await ready
   }
 
@@ -358,6 +388,9 @@ export class EngineClient {
     this.searchResolve = null
     this.searchReject?.(new Error('cancelled'))
     this.searchReject = null
+    this.initReject?.(new Error('cancelled'))
+    this.initReject = null
+    this.initResolve = null
   }
 
   destroy(): void {

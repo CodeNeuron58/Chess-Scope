@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Classification, MoveReview, ReviewResult } from '../types'
 import { useApp } from '../state/context'
 import { useBoardKeys, useBoardSize, useCoachMode, useThreats } from '../hooks'
+import { downloadText, useEngineDownload } from '../hooks/useEngineDownload'
 import { coachText } from '../hooks/useCoachMode'
 import { CLASSIFICATION_ORDER, formatEval, winPercent } from '../analysis/accuracy'
 import { funFactFor } from '../analysis/coach'
@@ -59,6 +60,12 @@ export function ReviewPage() {
   const fen = game.fens[ply] ?? game.fens[0]
   const position = result?.positions[ply] ?? null
   const movesTab = mode !== 'empty' && tab === 'moves'
+
+  // engine download progress (the full engine is ~99 MB the first time)
+  const download = useEngineDownload()
+  const downloading = !!download && download.status === 'downloading' && download.choice === settings.engineChoice
+  const downloadPct = download ? Math.round((download.loaded / Math.max(1, download.total)) * 100) : 0
+  const overlayDownload = download && download.status === 'downloading' ? download : null
 
   const coach = useCoachMode({
     ply,
@@ -271,9 +278,14 @@ export function ReviewPage() {
           }}
         </Popover>
         {rv.refining && (
-          <span className="refine-chip" title="The report is from a quick pass; the full-depth review is still running">
+          <span
+            className="refine-chip"
+            title={downloading ? 'One-time download of the full engine; the quick report is already shown' : 'The report is from a quick pass; the full-depth review is still running'}
+          >
             <span className="spinner spinner--sm" />
-            Refining · {Math.round((rv.progress.done / Math.max(1, rv.progress.total)) * 100)}%
+            {downloading
+              ? `Downloading engine · ${downloadPct}%`
+              : `Refining · ${Math.round((rv.progress.done / Math.max(1, rv.progress.total)) * 100)}%`}
           </span>
         )}
         <button type="button" className={`btn ${primary.cls}`} onClick={primary.on} disabled={mode === 'loaded' && total === 0}>
@@ -307,12 +319,21 @@ export function ReviewPage() {
                   <div className="board-overlay">
                     <div className="board-overlay__card">
                       <div className="spinner" />
-                      <div className="board-overlay__title">{rv.loadingEngine ? 'Loading engine…' : 'Reviewing game…'}</div>
+                      <div className="board-overlay__title">
+                        {rv.loadingEngine && overlayDownload ? 'Downloading engine…' : rv.loadingEngine ? 'Loading engine…' : 'Reviewing game…'}
+                      </div>
                       <span className="meter" style={{ width: '100%', flex: 'none' }}>
-                        <span className="meter__fill" style={{ width: `${Math.round((rv.progress.done / Math.max(1, rv.progress.total)) * 100)}%` }} />
+                        <span
+                          className="meter__fill"
+                          style={{
+                            width: `${rv.loadingEngine && overlayDownload ? Math.round((overlayDownload.loaded / Math.max(1, overlayDownload.total)) * 100) : Math.round((rv.progress.done / Math.max(1, rv.progress.total)) * 100)}%`,
+                          }}
+                        />
                       </span>
                       <div className="board-overlay__meta">
-                        {rv.progress.done} / {rv.progress.total} positions · depth {settings.depth}
+                        {rv.loadingEngine && overlayDownload
+                          ? `${downloadText(overlayDownload)} · first time only`
+                          : `${rv.progress.done} / ${rv.progress.total} positions · depth ${settings.depth}`}
                       </div>
                       <div className="board-overlay__fact">{funFactFor(Math.floor(rv.progress.done / 9))}</div>
                     </div>
@@ -328,7 +349,14 @@ export function ReviewPage() {
             accuracy={accuracy(bottomColor)}
             fen={fen}
           />
-          {rv.engineStatus && <div className="board-status">{rv.engineStatus}</div>}
+          {rv.engineStatus && (
+            <div className="board-status" role="alert">
+              {rv.engineStatus}{' '}
+              <button type="button" className="link-btn" onClick={() => void rv.startReview()}>
+                Try again
+              </button>
+            </div>
+          )}
         </div>
 
         <aside className="panel" aria-label="Review panel">
@@ -561,7 +589,8 @@ function ReportPanel({
   onAdvanced: () => void
   onDrills: () => void
 }) {
-  const { settings } = useApp()
+  const { settings, review } = useApp()
+  const refining = review.refining
   const evals = result.positions.map((p) => p.whiteCp)
   const classes = result.moves.map((m) => m.classification)
   const rows = CLASSIFICATION_ORDER.map((cls) => ({
@@ -594,8 +623,10 @@ function ReportPanel({
       </div>
       <EvalGraph evals={evals} classifications={classes} sans={sans} currentPly={ply} onSelectPly={onJump} />
       <div className="report__meta">
-        {result.preliminary
+        {result.preliminary && refining
           ? `Quick pass (depth ${result.depth}) · refining at depth ${settings.depth}…`
+          : result.preliminary
+            ? `Quick pass (depth ${result.depth}) only — the full review didn’t finish. Re-run to try again.`
           : `Depth ${result.depth} · average centipawn loss ${result.acpl.white.toFixed(0)} / ${result.acpl.black.toFixed(0)}`}
       </div>
       <div className="report__table">

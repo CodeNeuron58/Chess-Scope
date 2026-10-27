@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Chess } from 'chess.js'
 import { useApp } from '../state/context'
 import { useBoardKeys, useBoardSize, useLiveAnalysis, useThreats } from '../hooks'
+import { downloadText, useEngineDownload } from '../hooks/useEngineDownload'
 import { formatEval, winPercent } from '../analysis/accuracy'
 import { openingName } from '../analysis/openings'
 import { ENGINE_OPTIONS, LIVE_MAX_DEPTH, PALETTE } from '../lib/constants'
@@ -48,13 +49,17 @@ export function AnalysisPage() {
   const whiteToMove = fen.split(' ')[1] !== 'b'
   const ended = gameEndText(fen)
 
+  const [attempt, setAttempt] = useState(0)
   const live = useLiveAnalysis({
     fen,
     enabled: app.liveEngine && !rv.reviewing && !rv.refining && !ended,
     engineChoice: settings.engineChoice,
     getEngine: app.getEngine,
     lines: settings.lines,
+    attempt,
   })
+  const download = useEngineDownload()
+  const downloading = download && download.status === 'downloading' && download.choice === settings.engineChoice ? download : null
   const threats = useThreats({ blocked: rv.reviewing || rv.refining || app.liveEngine, displayedFen: fen, engineChoice: settings.engineChoice, getEngine: app.getEngine })
   const lines = (live.result?.lines ?? []).slice(0, settings.lines)
   const top = live.result?.lines[0]
@@ -200,9 +205,33 @@ export function AnalysisPage() {
                 <div className="engine-head">
                   <span className="engine-head__eval">{ended ? '—' : app.liveEngine && evalText ? evalText : '–'}</span>
                   <div className="engine-head__depth">
-                    <span>{ended ?? (!app.liveEngine ? 'Off' : rv.reviewing || rv.refining ? 'Paused during review' : live.error ? live.error : `Depth ${live.depth} of ${LIVE_MAX_DEPTH}`)}</span>
+                    <span>
+                      {ended ??
+                        (!app.liveEngine
+                          ? 'Off'
+                          : rv.reviewing || rv.refining
+                            ? 'Paused during review'
+                            : live.error
+                              ? live.error
+                              : downloading
+                                ? `Downloading engine · ${downloadText(downloading)}`
+                                : `Depth ${live.depth} of ${LIVE_MAX_DEPTH}`)}
+                      {live.error && !ended && app.liveEngine && (
+                        <>
+                          {' '}
+                          <button type="button" className="link-btn" onClick={() => setAttempt((a) => a + 1)}>
+                            Try again
+                          </button>
+                        </>
+                      )}
+                    </span>
                     <span className="meter" style={{ flex: 'none', height: 3 }}>
-                      <span className="meter__fill" style={{ width: app.liveEngine && !ended ? `${(live.depth / LIVE_MAX_DEPTH) * 100}%` : '0%' }} />
+                      <span
+                        className="meter__fill"
+                        style={{
+                          width: !app.liveEngine || ended ? '0%' : downloading ? `${(downloading.loaded / Math.max(1, downloading.total)) * 100}%` : `${(live.depth / LIVE_MAX_DEPTH) * 100}%`,
+                        }}
+                      />
                     </span>
                   </div>
                   <Segmented

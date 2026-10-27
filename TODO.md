@@ -38,6 +38,10 @@ Legend: **[R]** needed before the first public release · **[N]** next · **[L]*
 - [ ] **[R] chess.com API behaviour at scale**: 403 / 429 handling is in place, the API sends
       `Access-Control-Allow-Origin: *`, and the proxy setting is explained in Settings → Accounts.
       Confirm a sync from the live Pages URL.
+- [x] **[R] Engine downloads once.** Browsers' HTTP caches won't hold a 99 MB file, so the live
+      site re-downloaded it per engine worker and per visit (~400 MB a review). Engines now go to
+      Cache Storage once (Settings → Your data → Downloaded engines shows and removes them), and on
+      a first visit the full download waits until the lite engine's quick report is shown.
 - [x] **[R] Crash screen**: an error boundary with Reload, "Reset settings and reload" (keeps
       the library) and a prefilled bug report.
 - [x] **[R] Version + Beta label** (v0.3.0) on Home and in Settings → About; CI runs lint, tests

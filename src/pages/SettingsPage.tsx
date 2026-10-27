@@ -19,6 +19,7 @@ import type { SyncSource } from '../hooks/useLibrary'
 import { SAMPLE_GAMES } from '../samples'
 import { timeAgo } from '../lib/format'
 import { clearEvalCache, evalCacheSize } from '../library/db'
+import { removeStoredEngines, storedEngineBytes } from '../engine/download'
 import { href } from '../router'
 import { APP_VERSION, ENGINE_SOURCES, FEEDBACK_URL, REPO_URL } from '../lib/constants'
 import './settingsPage.css'
@@ -73,8 +74,10 @@ export function SettingsPage() {
 
   const reviewed = library.games.filter((g) => g.summary).length
   const [cached, setCached] = useState<number | null>(null)
+  const [engineBytes, setEngineBytes] = useState<number | null>(null)
   useEffect(() => {
     void evalCacheSize().then(setCached)
+    void storedEngineBytes().then(setEngineBytes)
   }, [])
 
   const exportLibrary = () => {
@@ -306,6 +309,26 @@ export function SettingsPage() {
                 Clear cache
               </button>
             </Row>
+            <Row
+              title="Downloaded engines"
+              sub={
+                engineBytes
+                  ? `${Math.round(engineBytes / 1_000_000)} MB stored in this browser, so the engine doesn’t download again.`
+                  : 'None stored yet. An engine downloads the first time you review or analyse, then stays here.'
+              }
+            >
+              <button
+                type="button"
+                className="btn btn--outline btn--sm"
+                disabled={!engineBytes}
+                onClick={() => void removeStoredEngines().then(() => {
+                  setEngineBytes(0)
+                  app.toast('Downloaded engines removed')
+                })}
+              >
+                Remove
+              </button>
+            </Row>
           </section>
 
           <section id="settings-privacy" className="card set-card">
@@ -321,7 +344,7 @@ export function SettingsPage() {
               <li>
                 <b>What goes over the network, and only when you ask:</b> your chess.com / Lichess username to fetch your public games from their official
                 APIs, a Lichess game link you paste, and — only if you add a Lichess token — positions you open in the Explorer. Engine files are
-                downloaded from this site once and then cached.
+                downloaded from this site once and stored in this browser (Settings → Your data → Downloaded engines).
               </li>
               <li>
                 <b>Your Lichess token</b> is stored in this browser and sent only to Lichess.

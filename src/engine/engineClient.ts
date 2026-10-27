@@ -188,9 +188,10 @@ export class EngineClient {
     this.hashMb = hashMb
   }
 
-  private ensureWorker(): Worker {
+  /** Start the worker; the engine script reads its WebAssembly's URL from the #hash. */
+  private ensureWorker(wasmUrl: string): Worker {
     if (this.worker) return this.worker
-    const w = new Worker(engineAssetUrl(ENGINE_FILES[this.choice]))
+    const w = new Worker(`${engineAssetUrl(ENGINE_FILES[this.choice])}#${encodeURIComponent(wasmUrl)}`)
     this.worker = w
     w.onmessage = (e: MessageEvent<string>) => this.onMessage(String(e.data))
     w.onerror = (e) => {
@@ -286,9 +287,9 @@ export class EngineClient {
   }
 
   private async handshake(): Promise<void> {
-    // one shared, progress-reporting download per engine kind (pool members reuse it)
-    await ensureEngineDownloaded(this.choice)
-    const w = this.ensureWorker()
+    // one shared, progress-reporting download per engine kind, stored for later visits
+    const wasmUrl = await ensureEngineDownloaded(this.choice)
+    const w = this.ensureWorker(wasmUrl)
     const done = this.waitForReply('uciok')
     w.postMessage('uci')
     await done
@@ -321,7 +322,9 @@ export class EngineClient {
     signal: { cancelled: boolean },
     opts: AnalyseOptions,
   ): Promise<PositionEval> {
-    const w = this.ensureWorker()
+    await this.init()
+    const w = this.worker
+    if (!w) throw new Error('The engine stopped working. Try again or pick another engine in Settings.')
     if (signal.cancelled) throw new Error('cancelled')
     this.byDepth = new Map()
     this.currentFen = fen

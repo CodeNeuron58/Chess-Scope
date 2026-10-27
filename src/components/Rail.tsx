@@ -1,5 +1,6 @@
 import { href, type Page } from '../router'
 import { useApp } from '../state/context'
+import { FEEDBACK_URL } from '../lib/constants'
 import { Icon, type IconName } from './Icon'
 import './rail.css'
 
@@ -41,6 +42,10 @@ export function Rail() {
       </a>
       <div className="rail__items">{ITEMS.map((i) => link(i.page, i.label, i.icon))}</div>
       <div className="rail__foot">
+        <a className="rail__item rail__item--feedback" href={FEEDBACK_URL} target="_blank" rel="noreferrer" title="Report a bug or ask for a feature">
+          <Icon name="feedback" size={20} stroke={1.8} />
+          Feedback
+        </a>
         {link('settings', 'Settings', 'settings')}
         <a
           href={href('settings', undefined, 'accounts')}

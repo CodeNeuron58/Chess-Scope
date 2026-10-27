@@ -9,6 +9,7 @@ import { LibraryPage } from './pages/LibraryPage'
 import { InsightsPage } from './pages/InsightsPage'
 import { DrillsPage } from './pages/DrillsPage'
 import { SettingsPage } from './pages/SettingsPage'
+import { ErrorBoundary } from './components/ErrorBoundary'
 
 const TITLES: Record<string, string> = {
   home: 'Home',
@@ -46,11 +47,13 @@ function CurrentPage() {
 /** Composition root: app state provider, navigation rail and the routed page. */
 export default function App() {
   return (
-    <AppProvider>
-      <div className="app">
-        <Rail />
-        <CurrentPage />
-      </div>
-    </AppProvider>
+    <ErrorBoundary>
+      <AppProvider>
+        <div className="app">
+          <Rail />
+          <CurrentPage />
+        </div>
+      </AppProvider>
+    </ErrorBoundary>
   )
 }

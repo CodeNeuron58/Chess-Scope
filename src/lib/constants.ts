@@ -80,3 +80,14 @@ export const DEPTH_OPTIONS: { value: number; label: string; sub: string }[] = [
 
 /** Search depth ceiling for the live analysis board. */
 export const LIVE_MAX_DEPTH = 30
+
+/** Public source repository (issues double as the feedback channel). */
+export const REPO_URL = 'https://github.com/CodeNeuron58/Owlchess'
+export const FEEDBACK_URL = `${REPO_URL}/issues/new/choose`
+export const APP_VERSION = __APP_VERSION__
+
+/** GPL engine sources, linked from Settings → About as the licence requires. */
+export const ENGINE_SOURCES = [
+  { label: 'Stockfish', url: 'https://github.com/official-stockfish/Stockfish' },
+  { label: 'stockfish.js (WebAssembly build)', url: 'https://github.com/nmrugg/stockfish.js' },
+] as const

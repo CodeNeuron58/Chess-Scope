@@ -613,6 +613,18 @@ a.stat:hover {
   background: var(--line);
 }
 
+.beta-tag {
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: var(--active);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  align-self: center;
+}
+
 .pill-tag {
   padding: 3px 9px;
   border-radius: 999px;

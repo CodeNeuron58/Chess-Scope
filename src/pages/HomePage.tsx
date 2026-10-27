@@ -12,6 +12,7 @@ import { outcomeFor, tcShort } from '../library/pgnMeta'
 import { fmt, greeting, speedLabel, timeAgo } from '../lib/format'
 import type { StoredGame } from '../library/types'
 import { SAMPLE_GAMES } from '../samples'
+import { APP_VERSION, FEEDBACK_URL } from '../lib/constants'
 import './homePage.css'
 
 /** FEN after `ply` half-moves of a PGN (null when unreadable). */
@@ -82,8 +83,13 @@ export function HomePage() {
       <header className="topbar">
         <div className="topbar__heading">
           <span className="topbar__brand">Owlchess</span>
+          <span className="beta-tag" title={`Version ${APP_VERSION} — early public test`}>Beta</span>
           <span className="topbar__sub">/ Home</span>
         </div>
+        <a className="btn btn--quiet" href={FEEDBACK_URL} target="_blank" rel="noreferrer">
+          <Icon name="feedback" size={15} />
+          Feedback
+        </a>
         <button type="button" className="btn btn--primary" onClick={() => setImportOpen(true)}>
           <Icon name="upload" size={15} stroke={2.2} />
           Import game

@@ -121,7 +121,8 @@
     border-top: 1px solid var(--line);
   }
   .rail__brand,
-  .rail__avatar {
+  .rail__avatar,
+  .rail__item--feedback {
     display: none;
   }
   .rail__items,

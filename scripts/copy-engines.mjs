@@ -19,12 +19,14 @@ const files = [
   ['stockfish16', 'src/stockfish-nnue-16-single.js'],
   ['stockfish16', 'src/stockfish-nnue-16-single.wasm'],
   ['stockfish16', 'src/nn-5af11540bbfe.nnue'],
+  // GPLv3 text must travel with the engine binaries
+  ['stockfish19', 'Copying.txt', 'STOCKFISH-COPYING.txt'],
 ]
 
 let copied = 0
-for (const [pkg, rel] of files) {
+for (const [pkg, rel, rename] of files) {
   const src = join(root, 'node_modules', pkg, rel)
-  const name = rel.split('/').pop()
+  const name = rename ?? rel.split('/').pop()
   const target = join(dest, name)
   if (existsSync(target) && !existsSync(src)) {
     console.log(`skip ${name} (source missing, already present)`)

@@ -20,6 +20,7 @@ import { SAMPLE_GAMES } from '../samples'
 import { timeAgo } from '../lib/format'
 import { clearEvalCache, evalCacheSize } from '../library/db'
 import { href } from '../router'
+import { APP_VERSION, ENGINE_SOURCES, FEEDBACK_URL, REPO_URL } from '../lib/constants'
 import './settingsPage.css'
 
 const SECTIONS = [
@@ -29,6 +30,7 @@ const SECTIONS = [
   ['review', 'Review'],
   ['accounts', 'Accounts'],
   ['data', 'Your data'],
+  ['privacy', 'Privacy'],
   ['about', 'About'],
 ] as const
 
@@ -306,16 +308,59 @@ export function SettingsPage() {
             </Row>
           </section>
 
+          <section id="settings-privacy" className="card set-card">
+            <div className="set-card__title">Privacy</div>
+            <ul className="privacy-list">
+              <li>
+                <b>No account, no tracking.</b> Owlchess has no sign-up, no ads, no analytics and no cookies.
+              </li>
+              <li>
+                <b>Your games stay on this device.</b> The engine runs in your browser; your library, reviews, drills and settings are stored in this
+                browser only (IndexedDB and local storage). Clearing site data or using Settings → Your data removes them.
+              </li>
+              <li>
+                <b>What goes over the network, and only when you ask:</b> your chess.com / Lichess username to fetch your public games from their official
+                APIs, a Lichess game link you paste, and — only if you add a Lichess token — positions you open in the Explorer. Engine files are
+                downloaded from this site once and then cached.
+              </li>
+              <li>
+                <b>Your Lichess token</b> is stored in this browser and sent only to Lichess.
+              </li>
+            </ul>
+          </section>
+
           <section id="settings-about" className="card set-card">
-            <div className="set-card__title">About Owlchess</div>
+            <div className="set-card__title">
+              About Owlchess <span className="beta-tag">Beta</span>
+            </div>
             <p className="about-text">
-              Owlchess reviews your games entirely in your browser — the engine, your library and your drills never leave this device. The only network
-              requests are to chess.com and Lichess when you import games, and to Lichess’ explorer if you add a token.
+              Version {APP_VERSION}. An early public test — things may break. Found a bug or want a feature?{' '}
+              <a href={FEEDBACK_URL} target="_blank" rel="noreferrer">
+                Send feedback
+              </a>{' '}
+              ·{' '}
+              <a href={REPO_URL} target="_blank" rel="noreferrer">
+                Source code
+              </a>
             </p>
             <div className="credits">
               <div>
                 <b>Engine</b>
-                <span>Stockfish 19 and 16 (WebAssembly builds) — GPL-3.0</span>
+                <span>
+                  Stockfish 19 and 16 (WebAssembly builds) — GPL-3.0.{' '}
+                  {ENGINE_SOURCES.map((src, i) => (
+                    <span key={src.url}>
+                      {i > 0 && ' · '}
+                      <a href={src.url} target="_blank" rel="noreferrer">
+                        {src.label} source
+                      </a>
+                    </span>
+                  ))}{' '}
+                  ·{' '}
+                  <a href={`${import.meta.env.BASE_URL}engines/STOCKFISH-COPYING.txt`} target="_blank" rel="noreferrer">
+                    licence
+                  </a>
+                </span>
               </div>
               {(Object.keys(PIECE_SETS) as PieceSetKey[]).map((k) => (
                 <div key={k}>
@@ -332,6 +377,10 @@ export function SettingsPage() {
               <div>
                 <b>Fonts</b>
                 <span>Figtree and JetBrains Mono — SIL Open Font License</span>
+              </div>
+              <div>
+                <b>Opening names</b>
+                <span>Lichess chess-openings dataset — CC0</span>
               </div>
             </div>
             <p className="set-row__sub">Not affiliated with chess.com or Lichess.</p>

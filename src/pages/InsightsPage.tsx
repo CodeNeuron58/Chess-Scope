@@ -125,7 +125,7 @@ export function InsightsPage() {
           {kpiTile('Average accuracy', fmt(k.accuracy), k.accuracy, kPrev.accuracy, 1, 'up', '', `${list.length} game${list.length === 1 ? '' : 's'}`)}
           {kpiTile('Score', Number.isFinite(k.score) ? `${Math.round(k.score)}%` : '—', k.score, kPrev.score, 0, 'up', ' pts', 'Points won')}
           {kpiTile('Blunders per game', fmt(k.blundersPerGame), k.blundersPerGame, kPrev.blundersPerGame, 1, 'down', '', 'All reviewed games')}
-          {kpiTile('Est. game rating', Number.isFinite(k.rating) ? String(k.rating) : '—', k.rating, kPrev.rating, 0, 'up', '', 'From your accuracy')}
+          {kpiTile('Est. game rating', Number.isFinite(k.rating) ? String(k.rating) : '—', k.rating, kPrev.rating, 0, 'up', '', 'Average per reviewed game')}
         </div>
 
         <div className="insights__row insights__row--wide">

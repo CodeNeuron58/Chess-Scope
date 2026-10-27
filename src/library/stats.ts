@@ -50,6 +50,13 @@ export function accuracyOf(u: UserGame, who: 'me' | 'opp' = 'me'): number {
   return u.summary.accuracy[side(who === 'me' ? u.color : other(u.color))]
 }
 
+/** The user's Game Rating for one game, from their rating then and the time control. */
+function ratingOf(u: UserGame): number {
+  const acc = accuracyOf(u)
+  if (!Number.isFinite(acc)) return NaN
+  return gameRating(acc, { elo: u.color === 'w' ? u.game.whiteElo : u.game.blackElo, speed: u.game.speed })
+}
+
 function countOf(u: UserGame, cls: Classification): number {
   return u.summary.counts[side(u.color)][cls] ?? 0
 }
@@ -71,7 +78,7 @@ export function kpis(list: UserGame[]): Kpis {
     accuracy,
     score: results.length ? (points / results.length) * 100 : NaN,
     blundersPerGame: mean(list.map((u) => countOf(u, 'blunder'))),
-    rating: Number.isNaN(accuracy) ? NaN : gameRating(accuracy),
+    rating: Math.round(mean(list.map(ratingOf).filter(Number.isFinite))),
   }
 }
 

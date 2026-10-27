@@ -4,7 +4,7 @@ import { useApp } from '../state/context'
 import { useBoardKeys, useBoardSize, useCoachMode, useThreats } from '../hooks'
 import { downloadText, useEngineDownload } from '../hooks/useEngineDownload'
 import { coachText } from '../hooks/useCoachMode'
-import { CLASSIFICATION_ORDER, formatEval, winPercent } from '../analysis/accuracy'
+import { CLASSIFICATION_ORDER, formatEval, gameRating, winPercent } from '../analysis/accuracy'
 import { funFactFor } from '../analysis/coach'
 import { buildReviewedPgn } from '../analysis/pgnExport'
 import { openingName } from '../analysis/openings'
@@ -12,7 +12,7 @@ import { CLASS_STYLE, DEPTH_OPTIONS, ENGINE_OPTIONS, KEY_CLASSES, PALETTE } from
 import { displayResult, formatLine, gameResult, startPly } from '../lib/chessUtils'
 import { moveLabel } from '../library/stats'
 import { revealInList } from '../lib/format'
-import { outcomeFor } from '../library/pgnMeta'
+import { outcomeFor, speedOf } from '../library/pgnMeta'
 import { Board, type BoardArrow } from '../components/Board'
 import { EvalBar } from '../components/EvalBar'
 import { EvalGraph } from '../components/EvalGraph'
@@ -169,6 +169,9 @@ export function ReviewPage() {
   const topColor = flipped ? 'w' : 'b'
   const bottomColor = flipped ? 'b' : 'w'
   const elo = (c: 'w' | 'b') => (c === 'w' ? game.headers.WhiteElo : game.headers.BlackElo)?.replace('?', '')
+  // worked out from accuracy on display, so reviews saved earlier pick up Game Rating refinements
+  const ratingFor = (c: 'w' | 'b') => gameRating(accuracy(c) ?? 0, { elo: Number(elo(c)) || undefined, speed: speedOf(game.headers.TimeControl) })
+  const gameRatings = { white: ratingFor('w'), black: ratingFor('b') }
 
   return (
     <div className="page page--board">
@@ -429,6 +432,7 @@ export function ReviewPage() {
               {tab === 'summary' && mode === 'report' && result && (
                 <ReportPanel
                   result={result}
+                  ratings={gameRatings}
                   white={white}
                   black={black}
                   sans={sans}
@@ -568,6 +572,7 @@ function EmptyPanel({ onLoad }: { onLoad: () => void }) {
 
 function ReportPanel({
   result,
+  ratings,
   white,
   black,
   sans,
@@ -579,6 +584,7 @@ function ReportPanel({
   onDrills,
 }: {
   result: ReviewResult
+  ratings: { white: number; black: number }
   white: string
   black: string
   sans: string[]
@@ -609,7 +615,7 @@ function ReportPanel({
           <div className="report__who">White · {white}</div>
           <div className="report__acc">{result.whiteAccuracy.toFixed(1)}</div>
           <div className="report__rating">
-            Game rating <b>{result.gameRating.white}</b>
+            Game rating <b>{ratings.white}</b>
           </div>
         </div>
         <span className="report__divider" />
@@ -617,7 +623,7 @@ function ReportPanel({
           <div className="report__who">Black · {black}</div>
           <div className="report__acc">{result.blackAccuracy.toFixed(1)}</div>
           <div className="report__rating">
-            Game rating <b>{result.gameRating.black}</b>
+            Game rating <b>{ratings.black}</b>
           </div>
         </div>
       </div>

@@ -131,7 +131,7 @@ export function HomePage() {
           <a className="stat" href="#/insights">
             <span className="stat__label">Est. game rating</span>
             <span className="stat__value">{Number.isFinite(k.rating) ? k.rating : '—'}</span>
-            <span className="stat__delta">Based on your accuracy</span>
+            <span className="stat__delta">Average of your reviewed games</span>
           </a>
         </div>
 

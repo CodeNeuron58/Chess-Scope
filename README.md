@@ -6,6 +6,18 @@ game. Your games build into a local library that powers Insights and drills made
 mistakes. No account, no server, no telemetry — nothing leaves your machine except the imports
 you ask for.
 
+**Public beta (v0.3).** Try it at **https://codeneuron58.github.io/Owlchess/** — and please
+[report bugs or ask for features](https://github.com/CodeNeuron58/Owlchess/issues/new/choose)
+(there is also a Feedback link in the app).
+
+![Guided review of the Opera Game: 16.Qb8+ rated Brilliant](docs/screenshots/review-coach.png)
+
+| | |
+|---|---|
+| ![Game report](docs/screenshots/review-report.png) | ![Analysis board](docs/screenshots/analysis.png) |
+| ![Home](docs/screenshots/home.png) | ![Insights](docs/screenshots/insights.png) |
+| ![Drills from your own mistakes](docs/screenshots/drills.png) | ![Library](docs/screenshots/library.png) |
+
 ## Run it
 
 ```bash
@@ -15,6 +27,15 @@ npm run build      # production build
 npm run test       # unit tests (vitest)
 npm run lint       # oxlint
 ```
+
+### Deploy (GitHub Pages)
+
+The app is a static site. `.github/workflows/deploy.yml` tests, builds with
+`BASE_PATH=/<repo>/` and publishes `dist/` to GitHub Pages; run it from the Actions tab
+(**Deploy to GitHub Pages → Run workflow**) after setting **Settings → Pages → Source** to
+**GitHub Actions**. Any static host works: build with `BASE_PATH` set to the sub-path the site is
+served from (default `/`) and upload `dist/`. The host must allow files of ~100 MB (the full
+engine); Cloudflare Pages, for example, caps files at 25 MiB.
 
 ## Pages
 
@@ -41,6 +62,11 @@ A 33-move game reviews at depth 14 in roughly 25–30 seconds on an 8+ core mach
 | Stockfish 19 lite | 1.7 MB | Instant load, slightly weaker |
 | Stockfish 16 | 40 MB | Previous generation |
 
+The engine downloads once on first use (with a progress indicator) and is then served from the
+browser cache. Engine sources: [Stockfish](https://github.com/official-stockfish/Stockfish) and
+the [stockfish.js](https://github.com/nmrugg/stockfish.js) WebAssembly port; the GPLv3 text ships
+as `engines/STOCKFISH-COPYING.txt` and is linked from Settings → About.
+
 ## Accounts and network use
 
 - **chess.com** and **Lichess**: enter a username; recent public games are imported through each
@@ -50,7 +76,7 @@ A 33-move game reviews at depth 14 in roughly 25–30 seconds on an 8+ core mach
   March 2026. Add a free token (no scopes) in Settings → Accounts to use the Masters and Lichess
   databases. The "My games" explorer works offline from your library.
 - Everything else — the engine, your library (IndexedDB), drills progress and settings
-  (localStorage) — stays in the browser.
+  (localStorage) — stays in the browser. See [PRIVACY.md](PRIVACY.md).
 
 ## Project docs
 
@@ -58,6 +84,9 @@ A 33-move game reviews at depth 14 in roughly 25–30 seconds on an 8+ core mach
 - [FEATURES.md](FEATURES.md) — feature checklist (shipped / now / later)
 - [ROADMAP.md](ROADMAP.md) — prioritised plan
 - [RESEARCH.md](RESEARCH.md) — market research and accuracy calibration archive
+- [TODO.md](TODO.md) — what's left before and after the public beta
+- [EXTENDED.md](EXTENDED.md) — longer-term ideas
+- [PRIVACY.md](PRIVACY.md) — what stays in your browser and what goes over the network
 - [LICENSE.md](LICENSE.md) — MIT app code; GPL engines; piece-set licences
 
 Built with React, Vite and TypeScript, chess.js for rules, react-chessboard for the board and the
